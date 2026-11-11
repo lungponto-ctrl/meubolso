@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-accent mb-1"><i class="fa-solid fa-exchange-alt me-2"></i>Gerenciar Transações</h2>
+        <p class="text-light opacity-75 mb-0">Visualize, filtre e controle todas as suas movimentações financeiras.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('transacoes.transferir') }}" class="btn btn-outline-light shadow-sm">
+            <i class="fa-solid fa-arrow-right-arrow-left me-1"></i> Transferir
+        </a>
+        <a href="{{ url_for('transacoes.novo') }}" class="btn btn-primary shadow-sm">
+            <i class="fa-solid fa-plus me-1"></i> Nova Transação
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card p-3 shadow-sm border-0 bg-dark text-light mb-4">
+    <form method="GET" action="{{ url_for('transacoes.index') }}" class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label text-light opacity-75 small mb-1">Filtrar por Tipo</label>
+            <select name="tipo" class="form-select bg-dark text-light border-secondary">
+                <option value="">Todos os tipos</option>
+                <option value="receita" {% if tipo_atual == 'receita' %}selected{% endif %}>Receitas</option>
+                <option value="despesa" {% if tipo_atual == 'despesa' %}selected{% endif %}>Despesas</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label text-light opacity-75 small mb-1">Filtrar por Conta</label>
+            <select name="conta_id" class="form-select bg-dark text-light border-secondary">
+                <option value="">Todas as contas</option>
+                {% for c in contas %}
+                    <option value="{{ c.id }}" {% if conta_atual == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fa-solid fa-filter me-1"></i> Filtrar
+            </button>
+            <a href="{{ url_for('transacoes.index') }}" class="btn btn-outline-secondary" title="Limpar Filtros">
+                <i class="fa-solid fa-rotate-right"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Tabela de Transações -->
+<div class="card p-4 shadow-sm border-0 bg-dark text-light">
+    {% if items %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead>
+                    <tr class="text-light opacity-75 border-secondary">
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Origem / Pagamento</th>
+                        <th class="text-end">Valor</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in items %}
+                    <tr class="border-secondary">
+                        <td class="text-light opacity-75 small">{{ t.data.strftime('%d/%m/%Y') }}</td>
+                        <td class="fw-semibold text-light">
+                            {{ t.descricao }}
+                            {% if t.total_parcelas > 1 %}
+                                <span class="badge bg-secondary border border-secondary text-light ms-2 fw-normal" style="font-size: 0.75rem;">
+                                    <i class="fa-solid fa-layer-group me-1"></i>{{ t.parcela_atual }}/{{ t.total_parcelas }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if t.conta %}
+                                <span class="badge bg-secondary"><i class="fa-solid fa-wallet me-1"></i>{{ t.conta.nome }}</span>
+                            {% elif t.cartao %}
+                                <span class="badge bg-primary"><i class="fa-solid fa-credit-card me-1"></i>{{ t.cartao.nome }}</span>
+                            {% else %}
+                                <span class="badge bg-dark border border-secondary text-light opacity-75">Não informada</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold {% if t.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
+                            {% if t.tipo == 'receita' %}+{% else %}-{% endif %} R$ {{ "%.2f"|format(t.valor) }}
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('transacoes.editar', id=t.id) }}" class="btn btn-sm btn-outline-warning me-1" title="Editar">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <a href="{{ url_for('transacoes.deletar', id=t.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Deseja realmente excluir esta transação?')" title="Excluir">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-light opacity-75 mb-0">Nenhum registro encontrado com os filtros selecionados.</p>
+    {% endif %}
+</div>
+{% endblock %}

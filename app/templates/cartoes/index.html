@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-accent mb-1"><i class="fa-solid fa-credit-card me-2"></i>Cartões de Crédito</h2>
+        <p class="text-light opacity-75 mb-0">Gerencie seus cartões, acompanhe faturas e limites disponíveis.</p>
+    </div>
+    <div>
+        <a href="{{ url_for('cartoes.novo') }}" class="btn btn-primary shadow-sm">
+            <i class="fa-solid fa-plus me-1"></i> Novo Cartão
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    {% if cartoes %}
+        {% for c in cartoes %}
+        {% set percentual = (c.fatura_atual / c.limite * 100) if c.limite > 0 else 0 %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card bg-dark text-light border-secondary shadow-sm h-100 position-relative">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="fw-bold text-accent mb-0"><i class="fa-solid fa-credit-card me-2"></i>{{ c.nome }}</h4>
+                            <div>
+                                <a href="{{ url_for('cartoes.editar', id=c.id) }}" class="btn btn-sm btn-outline-warning me-1" title="Editar">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <a href="{{ url_for('cartoes.deletar', id=c.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Deseja excluir este cartão?')" title="Excluir">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="text-light opacity-75 small">Fatura Atual</span>
+                            <h3 class="fw-bold text-danger mb-0">R$ {{ "%.2f"|format(c.fatura_atual) }}</h3>
+                        </div>
+
+                        <!-- Barra de Uso do Limite -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between text-light opacity-75 small mb-1">
+                                <span>Limite Utilizado</span>
+                                <span>{{ "%.1f"|format(percentual) }}%</span>
+                            </div>
+                            <div class="progress bg-secondary" style="height: 10px;">
+                                <div class="progress-bar {% if percentual > 90 %}bg-danger{% else %}bg-primary{% endif %}"
+                                     role="progressbar" style="width: {{ percentual }}%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="row text-light opacity-75 small mb-3">
+                            <div class="col-6">
+                                <span>Limite Total:</span><br>
+                                <strong class="text-light">R$ {{ "%.2f"|format(c.limite) }}</strong>
+                            </div>
+                            <div class="col-6">
+                                <span>Disponível:</span><br>
+                                <strong class="text-success">R$ {{ "%.2f"|format(c.limite_disponivel) }}</strong>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between text-light opacity-75 small border-top border-secondary pt-2 mb-3">
+                            <span><i class="fa-solid fa-calendar-xmark me-1"></i> Fecha dia: <strong>{{ c.dia_fechamento }}</strong></span>
+                            <span><i class="fa-solid fa-calendar-check me-1"></i> Vence dia: <strong>{{ c.dia_vencimento }}</strong></span>
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('cartoes.fatura', id=c.id) }}" class="btn btn-outline-light w-100 mt-2">
+                        <i class="fa-solid fa-file-invoice-dollar me-1"></i> Ver Fatura Detalhada
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="card bg-dark text-light border-secondary p-4 text-center">
+                <p class="text-light opacity-75 mb-0">Nenhum cartão cadastrado ainda. Clique em "Novo Cartão" para começar!</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

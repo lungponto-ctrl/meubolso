@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-accent mb-1"><i class="fa-solid fa-chart-pie me-2"></i>Visão Geral</h2>
+        <p class="text-light opacity-75 mb-0">Bem-vindo ao seu painel financeiro do AppMeuBolso.</p>
+    </div>
+    <div>
+        <a href="{{ url_for('contas.index') }}" class="btn btn-primary shadow-sm"><i class="fa-solid fa-wallet me-1"></i> Gerenciar Contas</a>
+    </div>
+</div>
+
+<!-- Cards de Resumo Financeiro -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card p-3 shadow-sm border-0 bg-dark text-light">
+            <h6 class="text-light opacity-75">Saldo Total</h6>
+            <h3 class="fw-bold text-accent">R$ {{ "%.2f"|format(saldo_total|default(0.0)) }}</h3>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card p-3 shadow-sm border-0 bg-dark text-light">
+            <h6 class="text-light opacity-75">Total de Receitas</h6>
+            <h3 class="fw-bold text-success">R$ {{ "%.2f"|format(total_receitas|default(0.0)) }}</h3>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card p-3 shadow-sm border-0 bg-dark text-light">
+            <h6 class="text-light opacity-75">Total de Despesas</h6>
+            <h3 class="fw-bold text-danger">R$ {{ "%.2f"|format(total_despesas|default(0.0)) }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Seção de Meta de Gastos e Gráfico -->
+<div class="row mb-4">
+    <!-- Meta de Gastos -->
+    <div class="col-md-6 mb-3">
+        <div class="card p-4 shadow-sm border-0 bg-dark text-light h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-light"><i class="fa-solid fa-bullseye me-2 text-accent"></i>Meta de Gastos Mensal</h5>
+                <!-- Botão para abrir o modal de alteração de meta -->
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEditarMeta" title="Editar Limite">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+
+            <p class="text-light opacity-75 small mb-2">Teto estabelecido: R$ {{ "%.2f"|format(meta_gastos|default(3000.0)) }}</p>
+            <div class="progress bg-secondary mb-2" style="height: 20px;">
+                <div class="progress-bar {% if percentual_gastos|default(0) > 90 %}bg-danger{% else %}bg-primary{% endif %}"
+                     role="progressbar" style="width: {{ percentual_gastos|default(0) }}%;"
+                     aria-valuenow="{{ percentual_gastos|default(0) }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ "%.1f"|format(percentual_gastos|default(0)) }}%
+                </div>
+            </div>
+            <small class="text-light opacity-75">Gastos atuais em relação ao seu limite planejado.</small>
+        </div>
+    </div>
+
+    <!-- Gráfico Chart.js -->
+    <div class="col-md-6 mb-3">
+        <div class="card p-4 shadow-sm border-0 bg-dark text-light h-100">
+            <h5 class="fw-bold mb-3 text-light"><i class="fa-solid fa-chart-simple me-2 text-accent"></i>Balanço Financeiro</h5>
+            <div style="height: 180px; position: relative;">
+                <canvas id="graficoResumo"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bloco Único de Últimas Transações -->
+<div class="card p-4 shadow-sm border-0 bg-dark text-light">
+    <h5 class="fw-bold mb-3 text-light"><i class="fa-solid fa-clock-rotate-left me-2 text-accent"></i>Últimas Transações</h5>
+    {% if transacoes %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <tbody>
+                    {% for t in transacoes %}
+                    <tr class="border-secondary">
+                        <td class="text-light opacity-75 small">{{ t.data.strftime('%d/%m/%Y') }}</td>
+                        <td class="fw-bold text-light">
+                            {{ t.descricao }}
+                            {% if t.total_parcelas > 1 %}
+                                <span class="badge bg-secondary border border-secondary text-light ms-2 fw-normal" style="font-size: 0.75rem;">
+                                    <i class="fa-solid fa-layer-group me-1"></i>{{ t.parcela_atual }}/{{ t.total_parcelas }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if t.conta %}
+                                <span class="badge bg-secondary"><i class="fa-solid fa-wallet me-1"></i>{{ t.conta.nome }}</span>
+                            {% elif t.cartao %}
+                                <span class="badge bg-primary"><i class="fa-solid fa-credit-card me-1"></i>{{ t.cartao.nome }}</span>
+                            {% else %}
+                                <span class="badge bg-dark border border-secondary text-light opacity-75">Não informada</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold {% if t.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
+                            {% if t.tipo == 'receita' %}+{% else %}-{% endif %} R$ {{ "%.2f"|format(t.valor) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-light opacity-75 mb-0">Nenhuma transação registrada recentemente.</p>
+    {% endif %}
+</div>
+
+<!-- Modal para Editar a Meta de Gastos -->
+<div class="modal fade" id="modalEditarMeta" tabindex="-1" aria-labelledby="modalEditarMetaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-secondary">
+            <form method="POST">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold text-accent" id="modalEditarMetaLabel"><i class="fa-solid fa-bullseye me-2"></i>Alterar Meta de Gastos</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-light opacity-75">Novo Teto de Gastos (R$)</label>
+                        <input type="number" step="0.01" name="meta_gastos" value="{{ meta_gastos|default(3000.0) }}" class="form-control bg-dark text-light border-secondary" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Nova Meta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Importando o Chart.js via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('graficoResumo').getContext('2d');
+    const graficoResumo = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Receitas', 'Despesas'],
+            datasets: [{
+                data: [{{ total_receitas|default(0.0) }}, {{ total_despesas|default(0.0) }}],
+                backgroundColor: ['#198754', '#dc3545'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#ffffff' }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

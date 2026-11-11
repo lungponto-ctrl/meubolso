@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm border-0 bg-dark text-light p-4">
+            <h2 class="fw-bold text-accent mb-4">
+                <i class="fa-solid fa-exchange-alt me-2"></i>
+                {% if transacao %}Editar Transação{% else %}Nova Transação{% endif %}
+            </h2>
+
+            <form method="POST">
+                <!-- Data da Transação -->
+                <div class="mb-3">
+                    <label class="form-label text-light fw-semibold">Data da Transação</label>
+                    <input type="date" name="data" value="{{ transacao.data.strftime('%Y-%m-%d') if transacao and transacao.data else '' }}" class="form-control bg-dark text-light border-secondary" required>
+                    <div class="form-text text-light opacity-75">Data em que a transação ocorreu ou da compra no cartão.</div>
+                </div>
+
+                <!-- Descrição -->
+                <div class="mb-3">
+                    <label class="form-label text-light fw-semibold">Descrição</label>
+                    <input type="text" name="descricao" value="{{ transacao.descricao if transacao else '' }}" class="form-control bg-dark text-light border-secondary" placeholder="Ex: Supermercado, Aluguel, Farmácia..." required>
+                </div>
+
+                <!-- Valor e Tipo lado a lado -->
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <label class="form-label text-light fw-semibold">Valor (R$)</label>
+                        <input type="number" step="0.01" name="valor" value="{{ transacao.valor if transacao else '' }}" class="form-control bg-dark text-light border-secondary" placeholder="0.00" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-light fw-semibold">Tipo de Transação</label>
+                        <select name="tipo" id="selectTipo" class="form-select bg-dark text-light border-secondary" required>
+                            <option value="despesa" {% if transacao and transacao.tipo == 'despesa' %}selected{% endif %}>Despesa</option>
+                            <option value="receita" {% if transacao and transacao.tipo == 'receita' %}selected{% endif %}>Receita</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Forma de Pagamento -->
+                <div class="mb-3">
+                    <label class="form-label text-light fw-semibold">Forma de Lançamento</label>
+                    <select name="forma_pagamento" id="selectFormaPagamento" class="form-select bg-dark text-light border-secondary" onchange="toggleFormaPagamento()">
+                        <option value="conta" {% if not transacao or transacao.conta_id %}selected{% endif %}>Conta Bancária / Saldo</option>
+                        <option value="cartao" {% if transacao and transacao.cartao_id %}selected{% endif %}>Cartão de Crédito</option>
+                    </select>
+                </div>
+
+                <!-- Seleção da Conta -->
+                <div class="mb-3" id="campoConta">
+                    <label class="form-label text-light fw-semibold">Conta Bancária</label>
+                    <select name="conta_id" class="form-select bg-dark text-light border-secondary">
+                        {% for conta in contas %}
+                            <option value="{{ conta.id }}" {% if transacao and transacao.conta_id == conta.id %}selected{% endif %}>{{ conta.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Seleção do Cartão e Parcelas -->
+                <div id="campoCartao" style="display: none;">
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-semibold">Cartão de Crédito</label>
+                        <select name="cartao_id" class="form-select bg-dark text-light border-secondary">
+                            {% for cartao in cartoes %}
+                                <option value="{{ cartao.id }}" {% if transacao and transacao.cartao_id == cartao.id %}selected{% endif %}>{{ cartao.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {% if not transacao %}
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-semibold">Número de Parcelas</label>
+                        <input type="number" min="1" max="72" name="total_parcelas" value="1" class="form-control bg-dark text-light border-secondary">
+                        <div class="form-text text-light opacity-75">Informe 1 para pagamento à vista ou mais para parcelamento automático.</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{{ url_for('transacoes.index') }}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Salvar Transação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleFormaPagamento() {
+    const forma = document.getElementById('selectFormaPagamento').value;
+    const campoConta = document.getElementById('campoConta');
+    const campoCartao = document.getElementById('campoCartao');
+
+    if (forma === 'cartao') {
+        campoConta.style.display = 'none';
+        campoCartao.style.display = 'block';
+    } else {
+        campoConta.style.display = 'block';
+        campoCartao.style.display = 'none';
+    }
+}
+toggleFormaPagamento();
+</script>
+{% endblock %}
