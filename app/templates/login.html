@@ -41,12 +41,17 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
         .form-label {
-            color: #d1d5db !important; /* Letras claras e bem visíveis */
+            color: #d1d5db !important;
         }
         .form-control {
             background-color: #2d2d2d;
             border: 1px solid #404040;
             color: #fff;
+        }
+        /* Torna o texto de exemplo (placeholder) claro e bem visível */
+        .form-control::placeholder {
+            color: #9ca3af !important;
+            opacity: 1;
         }
         .form-control:focus {
             background-color: #2d2d2d;
@@ -105,7 +110,8 @@
                     <label for="username" class="form-label small fw-bold">USUÁRIO</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary text-light"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" class="form-control" id="username" name="username" required placeholder="Ex: Daniely">
+                        <!-- Exemplo genérico ajustado -->
+                        <input type="text" class="form-control" id="username" name="username" required placeholder="Ex: meu_usuario">
                     </div>
                 </div>
 
@@ -123,7 +129,7 @@
             </form>
 
             <div class="text-center mt-4">
-                <small class="text-light opacity-75">Acesso padrão: usuário <b>Daniely</b> | senha <b>Dany97883437</b></small>
+                <small class="text-light opacity-75">Acesso padrão configurado</small>
             </div>
         </div>
     </div>
