@@ -45,23 +45,29 @@
     </div>
 </div>
 
-<!-- Cards de Resumo Financeiro -->
+<!-- Cards de Resumo Financeiro (Com Dinheiro Guardado Separado) -->
 <div class="row mb-4">
-    <div class="col-md-4 mb-3">
-        <div class="card p-3 shadow-sm border-0 bg-dark text-light">
+    <div class="col-md-3 mb-3">
+        <div class="card p-3 shadow-sm border-0 bg-dark text-light h-100">
             <h6 class="text-light opacity-75">Saldo Total</h6>
             <h3 class="fw-bold text-accent">R$ {{ "%.2f"|format(saldo_total|default(0.0)) }}</h3>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <div class="card p-3 shadow-sm border-0 bg-dark text-light">
-            <h6 class="text-light opacity-75">Total de Receitas</h6>
+    <div class="col-md-3 mb-3">
+        <div class="card p-3 shadow-sm border-0 bg-dark text-light h-100">
+            <h6 class="text-light opacity-75"><i class="fa-solid fa-money-bill-wave text-success me-1"></i> Receitas (Salário)</h6>
             <h3 class="fw-bold text-success">R$ {{ "%.2f"|format(total_receitas|default(0.0)) }}</h3>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <div class="card p-3 shadow-sm border-0 bg-dark text-light">
-            <h6 class="text-light opacity-75">Total de Despesas</h6>
+    <div class="col-md-3 mb-3">
+        <div class="card p-3 shadow-sm border-0 bg-dark text-light h-100">
+            <h6 class="text-light opacity-75"><i class="fa-solid fa-piggy-bank text-info me-1"></i> Dinheiro Guardado</h6>
+            <h3 class="fw-bold text-info">R$ {{ "%.2f"|format(total_guardado|default(0.0)) }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card p-3 shadow-sm border-0 bg-dark text-light h-100">
+            <h6 class="text-light opacity-75"><i class="fa-solid fa-receipt text-danger me-1"></i> Total de Despesas</h6>
             <h3 class="fw-bold text-danger">R$ {{ "%.2f"|format(total_despesas|default(0.0)) }}</h3>
         </div>
     </div>
@@ -174,10 +180,10 @@
     const graficoResumo = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Receitas', 'Despesas'],
+            labels: ['Receitas', 'Dinheiro Guardado', 'Despesas'],
             datasets: [{
-                data: [{{ total_receitas|default(0.0) }}, {{ total_despesas|default(0.0) }}],
-                backgroundColor: ['#198754', '#dc3545'],
+                data: [{{ total_receitas|default(0.0) }}, {{ total_guardado|default(0.0) }}, {{ total_despesas|default(0.0) }}],
+                backgroundColor: ['#198754', '#0dcaf0', '#dc3545'],
                 borderWidth: 0
             }]
         },

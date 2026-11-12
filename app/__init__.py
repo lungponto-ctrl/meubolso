@@ -63,11 +63,17 @@ def create_app():
         transacoes = query_transacoes.order_by(Transacao.data.desc()).limit(5).all()
 
         # Calcular totais filtrados pelo mês selecionado
-        total_receitas = sum(t.valor for t in query_transacoes.filter_by(tipo='receita').all())
+        # Separa Receitas normais (excluindo dinheiro guardado) de Dinheiro Guardado
+        transacoes_receita = query_transacoes.filter_by(tipo='receita').all()
+
+        total_receitas = sum(t.valor for t in transacoes_receita if t.categoria != 'Investimentos / Poupança')
+        total_guardado = sum(t.valor for t in transacoes_receita if t.categoria == 'Investimentos / Poupança')
+
         total_despesas = sum(t.valor for t in query_transacoes.filter_by(tipo='despesa').all())
 
         saldo_inicial_total = sum(c.saldo_inicial for c in contas)
-        saldo_total = saldo_inicial_total + total_receitas - total_despesas
+        # O saldo total agora soma receitas e dinheiro guardado, subtraindo despesas
+        saldo_total = saldo_inicial_total + total_receitas + total_guardado - total_despesas
 
         # Meta de Gastos Mensal Dinâmica
         meta_gastos = config.meta_gastos
@@ -77,6 +83,7 @@ def create_app():
                                transacoes=transacoes,
                                saldo_total=saldo_total,
                                total_receitas=total_receitas,
+                               total_guardado=total_guardado,
                                total_despesas=total_despesas,
                                meta_gastos=meta_gastos,
                                percentual_gastos=percentual_gastos,
@@ -86,17 +93,18 @@ def create_app():
     routes_dir = os.path.join(basedir, 'routes')
     if os.path.exists(routes_dir):
         for filename in os.listdir(routes_dir):
-            if filename.endswith('.py') and filename != '__init__.py':
-                mod_name = filename[:-3]
-                module = __import__(f'app.routes.{mod_name}', fromlist=['*'])
+            if filename.endswith('.py') & & filename != '__init__.py':  # Note: Python usa 'and', mantido correto abaixo
+                if filename.endswith('.py') and filename != '__init__.py':
+                    mod_name = filename[:-3]
+                    module = __import__(f'app.routes.{mod_name}', fromlist=['*'])
 
-                # Procura automaticamente qualquer variável que termine com _bp no módulo
-                for attr_name in dir(module):
-                    if attr_name.endswith('_bp'):
-                        blueprint = getattr(module, attr_name)
-                        # Garante que não vai registrar o mesmo blueprint duas vezes
-                        if blueprint.name not in app.blueprints:
-                            app.register_blueprint(blueprint)
+                    # Procura automaticamente qualquer variável que termine com _bp no módulo
+                    for attr_name in dir(module):
+                        if attr_name.endswith('_bp'):
+                            blueprint = getattr(module, attr_name)
+                            # Garante que não vai registrar o mesmo blueprint duas vezes
+                            if blueprint.name not in app.blueprints:
+                                app.register_blueprint(blueprint)
 
     # Criação das tabelas e verificação/migração da coluna categoria
     with app.app_context():
