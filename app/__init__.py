@@ -63,16 +63,28 @@ def create_app():
         transacoes = query_transacoes.order_by(Transacao.data.desc()).limit(5).all()
 
         # Calcular totais filtrados pelo mês selecionado
-        # Separa Receitas normais (excluindo dinheiro guardado) de Dinheiro Guardado
         transacoes_receita = query_transacoes.filter_by(tipo='receita').all()
 
-        total_receitas = sum(t.valor for t in transacoes_receita if t.categoria != 'Investimentos / Poupança')
-        total_guardado = sum(t.valor for t in transacoes_receita if t.categoria == 'Investimentos / Poupança')
+        # Receitas reais (Salários / Entradas genuínas, excluindo investimentos, transferências e guardados)
+        total_receitas = sum(
+            t.valor for t in transacoes_receita
+            if t.categoria != 'Investimentos / Poupança'
+            and 'Transferência' not in t.descricao
+            and 'Guardado' not in t.descricao
+        )
+
+        # Dinheiro Guardado (Soma poupanças, transferências e valores guardados)
+        total_guardado = sum(
+            t.valor for t in transacoes_receita
+            if t.categoria == 'Investimentos / Poupança'
+            or 'Transferência' in t.descricao
+            or 'Guardado' in t.descricao
+        )
 
         total_despesas = sum(t.valor for t in query_transacoes.filter_by(tipo='despesa').all())
 
         saldo_inicial_total = sum(c.saldo_inicial for c in contas)
-        # O saldo total agora soma receitas e dinheiro guardado, subtraindo despesas
+        # O saldo total soma receitas e dinheiro guardado, subtraindo despesas
         saldo_total = saldo_inicial_total + total_receitas + total_guardado - total_despesas
 
         # Meta de Gastos Mensal Dinâmica
