@@ -30,6 +30,11 @@ def create_app():
         from app.models import Usuario
         return db.session.get(Usuario, int(user_id))
 
+    # Rota pública para serviços de ping / cron job manterem o Render acordado
+    @app.route('/ping')
+    def ping():
+        return "OK - Servidor Ativo", 200
+
     # Rota de Login
     @app.route('/login', methods=['GET', 'POST'])
     def login():
