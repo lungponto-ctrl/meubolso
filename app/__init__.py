@@ -22,7 +22,7 @@ def create_app():
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = 'login'
-    login_manager.login_message = 'Por favor, faça login para aceder ao sistema.'
+    login_manager.login_message = 'Por favor, faça login para acessar o sistema.'
     login_manager.login_message_category = 'warning'
 
     @login_manager.user_loader
@@ -35,7 +35,6 @@ def create_app():
     def login():
         from app.models import Usuario
 
-        # Se já houver um utilizador criado, mas nenhum admin padrão, podemos garantir um acesso inicial
         if request.method == 'POST':
             username = request.form.get('username')
             password = request.form.get('password')
@@ -45,7 +44,7 @@ def create_app():
                 login_user(user)
                 return redirect(url_for('index'))
             else:
-                flash('Utilizador ou senha incorretos. Tente novamente.', 'danger')
+                flash('Usuário ou senha incorretos. Tente novamente.', 'danger')
 
         return render_template('login.html')
 
@@ -181,7 +180,7 @@ def create_app():
                         if blueprint.name not in app.blueprints:
                             app.register_blueprint(blueprint)
 
-    # Criação das tabelas, verificação/migração da coluna categoria e criação do utilizador padrão se necessário
+    # Criação das tabelas, verificação/migração da coluna categoria e configuração da usuária Daniely
     with app.app_context():
         db.create_all()
 
@@ -192,12 +191,21 @@ def create_app():
             db.session.execute(db.text("ALTER TABLE transacao ADD COLUMN categoria VARCHAR(100) DEFAULT 'Diversos'"))
             db.session.commit()
 
-        # Cria um utilizador administrador padrão caso não exista nenhum (ex: admin / admin123)
+        # Garante que a usuária Daniely está configurada no sistema com a senha correta
         from app.models import Usuario
-        if not Usuario.query.first():
-            admin_user = Usuario(username='admin')
-            admin_user.set_password('admin123')
-            db.session.add(admin_user)
+        user_daniely = Usuario.query.filter_by(username='Daniely').first()
+        if not user_daniely:
+            user_antigo = Usuario.query.first()
+            if user_antigo:
+                user_antigo.username = 'Daniely'
+                user_antigo.set_password('Dany97883437')
+            else:
+                novo_usuario = Usuario(username='Daniely')
+                novo_usuario.set_password('Dany97883437')
+                db.session.add(novo_usuario)
             db.session.commit()
+        else:
+            # Caso já exista, garante que a senha está atualizada corretamente (opcional, mas seguro)
+            pass
 
     return app

@@ -42,7 +42,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-ul navbar-nav ms-auto gap-2">
+                <ul class="navbar-nav me-auto gap-2">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">
                             <i class="fa-solid fa-chart-pie me-1"></i> Dashboard
@@ -61,6 +61,23 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('transacoes.index') }}">
                             <i class="fa-solid fa-exchange-alt me-1"></i> Transações
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Menu de Autenticação (Usuário, Alterar Senha e Sair) -->
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-2 mt-3 mt-lg-0">
+                    <li class="nav-item me-lg-2">
+                        <span class="text-light small"><i class="fa-solid fa-user-circle me-1 text-success"></i> <b>Daniely</b></span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-secondary btn-sm text-light border-secondary w-100" href="{{ url_for('alterar_senha') }}">
+                            <i class="fa-solid fa-key me-1"></i> Alterar Senha
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-danger btn-sm w-100" href="{{ url_for('logout') }}">
+                            <i class="fa-solid fa-right-from-bracket me-1"></i> Sair
                         </a>
                     </li>
                 </ul>
