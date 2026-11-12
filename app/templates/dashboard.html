@@ -10,12 +10,37 @@
     </div>
 </div>
 
-<!-- Filtro de Mês Simples -->
+<!-- Filtro de Mês com Select Simples -->
 <div class="row mb-4">
     <div class="col-md-4">
         <form method="GET" action="{{ url_for('index') }}" class="d-flex align-items-center gap-2">
             <label for="mes" class="text-light fw-semibold text-nowrap"><i class="fa-solid fa-calendar-days me-1"></i> Mês:</label>
-            <input type="month" id="mes" name="mes" value="{{ mes_atual }}" class="form-control bg-dark text-light border-secondary" onchange="this.form.submit()">
+            <select id="mes" name="mes" class="form-select bg-dark text-light border-secondary" onchange="this.form.submit()">
+                <option value="2026-01" {% if mes_atual == '2026-01' %}selected{% endif %}>Janeiro de 2026</option>
+                <option value="2026-02" {% if mes_atual == '2026-02' %}selected{% endif %}>Fevereiro de 2026</option>
+                <option value="2026-03" {% if mes_atual == '2026-03' %}selected{% endif %}>Março de 2026</option>
+                <option value="2026-04" {% if mes_atual == '2026-04' %}selected{% endif %}>Abril de 2026</option>
+                <option value="2026-05" {% if mes_atual == '2026-05' %}selected{% endif %}>Maio de 2026</option>
+                <option value="2026-06" {% if mes_atual == '2026-06' %}selected{% endif %}>Junho de 2026</option>
+                <option value="2026-07" {% if mes_atual == '2026-07' %}selected{% endif %}>Julho de 2026</option>
+                <option value="2026-08" {% if mes_atual == '2026-08' %}selected{% endif %}>Agosto de 2026</option>
+                <option value="2026-09" {% if mes_atual == '2026-09' %}selected{% endif %}>Setembro de 2026</option>
+                <option value="2026-10" {% if mes_atual == '2026-10' %}selected{% endif %}>Outubro de 2026</option>
+                <option value="2026-11" {% if mes_atual == '2026-11' %}selected{% endif %}>Novembro de 2026</option>
+                <option value="2026-12" {% if mes_atual == '2026-12' %}selected{% endif %}>Dezembro de 2026</option>
+                <option value="2027-01" {% if mes_atual == '2027-01' %}selected{% endif %}>Janeiro de 2027</option>
+                <option value="2027-02" {% if mes_atual == '2027-02' %}selected{% endif %}>Fevereiro de 2027</option>
+                <option value="2027-03" {% if mes_atual == '2027-03' %}selected{% endif %}>Março de 2027</option>
+                <option value="2027-04" {% if mes_atual == '2027-04' %}selected{% endif %}>Abril de 2027</option>
+                <option value="2027-05" {% if mes_atual == '2027-05' %}selected{% endif %}>Maio de 2027</option>
+                <option value="2027-06" {% if mes_atual == '2027-06' %}selected{% endif %}>Junho de 2027</option>
+                <option value="2027-07" {% if mes_atual == '2027-07' %}selected{% endif %}>Julho de 2027</option>
+                <option value="2027-08" {% if mes_atual == '2027-08' %}selected{% endif %}>Agosto de 2027</option>
+                <option value="2027-09" {% if mes_atual == '2027-09' %}selected{% endif %}>Setembro de 2027</option>
+                <option value="2027-10" {% if mes_atual == '2027-10' %}selected{% endif %}>Outubro de 2027</option>
+                <option value="2027-11" {% if mes_atual == '2027-11' %}selected{% endif %}>Novembro de 2027</option>
+                <option value="2027-12" {% if mes_atual == '2027-12' %}selected{% endif %}>Dezembro de 2027</option>
+            </select>
         </form>
     </div>
 </div>
