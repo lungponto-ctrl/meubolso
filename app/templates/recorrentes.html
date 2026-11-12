@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-accent mb-1"><i class="fa-solid fa-calendar-check me-2"></i>Contas Recorrentes & Faturas</h2>
+        <p class="text-light opacity-75 mb-0">Gerencie suas despesas fixas mensais e evite atrasos.</p>
+    </div>
+    <div>
+        <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNovaRecorrente">
+            <i class="fa-solid fa-plus me-1"></i> Nova Conta Fixa
+        </button>
+    </div>
+</div>
+
+<!-- Filtro de Mês -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <form method="GET" action="{{ url_for('recorrentes.index') }}" class="d-flex align-items-center gap-2">
+            <label for="mes" class="text-light fw-semibold text-nowrap"><i class="fa-solid fa-calendar-days me-1"></i> Mês:</label>
+            <input type="month" id="mes" name="mes" value="{{ mes_atual }}" class="form-control bg-dark text-light border-secondary" onchange="this.form.submit()">
+        </form>
+    </div>
+</div>
+
+<!-- Lista de Contas Recorrentes -->
+<div class="card p-4 shadow-sm border-0 bg-dark text-light">
+    <h5 class="fw-bold mb-3 text-light"><i class="fa-solid fa-list-check me-2 text-accent"></i>Acompanhamento do Mês ({{ mes_atual }})</h5>
+    
+    {% if contas_recorrentes %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead>
+                    <tr class="border-secondary text-muted small">
+                        <th>DESCRIÇÃO / CATEGORIA</th>
+                        <th>VENCIMENTO</th>
+                        <th>VALOR</th>
+                        <th>CONTA PADRÃO</th>
+                        <th>STATUS</th>
+                        <th class="text-end">AÇÕES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in contas_recorrentes %}
+                    {% set pago = item.esta_pago_no_mes(mes_atual) %}
+                    <tr class="border-secondary">
+                        <td>
+                            <div class="fw-bold text-light">{{ item.descricao }}</div>
+                            <small class="text-light opacity-75"><i class="fa-solid fa-tag me-1"></i>{{ item.categoria }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary text-light">Dia {{ item.dia_vencimento }}</span>
+                        </td>
+                        <td class="fw-bold text-light">
+                            R$ {{ "%.2f"|format(item.valor) }}
+                        </td>
+                        <td>
+                            {% if item.conta %}
+                                <span class="badge bg-secondary"><i class="fa-solid fa-wallet me-1"></i>{{ item.conta.nome }}</span>
+                            {% else %}
+                                <span class="badge bg-dark border border-secondary text-light opacity-75">Não vinculada</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pago %}
+                                <span class="badge bg-success px-3 py-2"><i class="fa-solid fa-check-circle me-1"></i> Pago</span>
+                            {% else %}
+                                <span class="badge bg-danger px-3 py-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Pendente</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end gap-2">
+                                {% if not pago %}
+                                <form action="{{ url_for('recorrentes.pagar', id=item.id) }}" method="POST">
+                                    <input type="hidden" name="mes_referencia" value="{{ mes_atual }}">
+                                    <button type="submit" class="btn btn-success btn-sm fw-bold shadow-sm" title="Marcar como Pago">
+                                        <i class="fa-solid fa-check me-1"></i> Pagar
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form action="{{ url_for('recorrentes.excluir', id=item.id) }}" method="POST" onsubmit="return confirm('Deseja realmente excluir esta conta recorrente?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-light opacity-75 mb-0">Nenhuma conta recorrente cadastrada. Clique em "Nova Conta Fixa" para começar.</p>
+    {% endif %}
+</div>
+
+<!-- Modal para Nova Conta Recorrente -->
+<div class="modal fade" id="modalNovaRecorrente" tabindex="-1" aria-labelledby="modalNovaRecorrenteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-secondary">
+            <form method="POST">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold text-accent" id="modalNovaRecorrenteLabel"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Nova Conta Recorrente / Fatura</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-light opacity-75">Descrição (Ex: Aluguel, Internet, Fatura Nubank)</label>
+                        <input type="text" name="descricao" class="form-control bg-dark text-light border-secondary" required placeholder="Ex: Internet Fibra">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-light opacity-75">Valor Estimado (R$)</label>
+                            <input type="number" step="0.01" name="valor" class="form-control bg-dark text-light border-secondary" required placeholder="0.00">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-light opacity-75">Dia de Vencimento</label>
+                            <input type="number" min="1" max="31" name="dia_vencimento" class="form-control bg-dark text-light border-secondary" required value="10">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light opacity-75">Categoria</label>
+                        <input type="text" name="categoria" class="form-control bg-dark text-light border-secondary" value="Contas Fixas">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light opacity-75">Conta Bancária para Débito Automático (Opcional)</label>
+                        <select name="conta_id" class="form-select bg-dark text-light border-secondary">
+                            <option value="">Nenhuma (Apenas controle)</option>
+                            {% for c in contas_bancarias %}
+                                <option value="{{ c.id }}">{{ c.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Conta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -83,3 +83,21 @@ class Transacao(db.Model):
 class Configuracao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     meta_gastos = db.Column(db.Float, default=3000.00, nullable=False)
+
+
+class ContaRecorrente(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    descricao = db.Column(db.String(150), nullable=False)  # Ex: Aluguel, Internet, Fatura Nubank
+    valor = db.Column(db.Float, nullable=False)
+    dia_vencimento = db.Column(db.Integer, nullable=False)  # Dia do mês (ex: 5, 10, 20)
+    categoria = db.Column(db.String(100), nullable=False, default='Contas Fixas')
+
+    # Guarda o mês (formato 'YYYY-MM') em que foi pago pela última vez
+    ultimo_mes_pago = db.Column(db.String(7), nullable=True)
+
+    # Conta padrão de onde o dinheiro sai quando você clica em "Pagar"
+    conta_id = db.Column(db.Integer, db.ForeignKey('conta.id'), nullable=True)
+    conta = db.relationship('Conta', backref=db.backref('recorrentes', lazy=True))
+
+    def esta_pago_no_mes(self, mes_referencia):
+        return self.ultimo_mes_pago == mes_referencia
