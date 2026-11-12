@@ -1,7 +1,8 @@
 import os
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
 db = SQLAlchemy()
 
@@ -17,8 +18,71 @@ def create_app():
 
     db.init_app(app)
 
-    # Rota Principal (Dashboard com Filtro de Mês)
+    # Configuração do Flask-Login
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'login'
+    login_manager.login_message = 'Por favor, faça login para aceder ao sistema.'
+    login_manager.login_message_category = 'warning'
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models import Usuario
+        return db.session.get(Usuario, int(user_id))
+
+    # Rota de Login
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        from app.models import Usuario
+
+        # Se já houver um utilizador criado, mas nenhum admin padrão, podemos garantir um acesso inicial
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+
+            user = Usuario.query.filter_by(username=username).first()
+            if user and user.check_password(password):
+                login_user(user)
+                return redirect(url_for('index'))
+            else:
+                flash('Utilizador ou senha incorretos. Tente novamente.', 'danger')
+
+        return render_template('login.html')
+
+    # Rota de Logout
+    @app.route('/logout')
+    @login_required
+    def logout():
+        logout_user()
+        return redirect(url_for('login'))
+
+    # Rota para Alterar Senha
+    @app.route('/alterar-senha', methods=['GET', 'POST'])
+    @login_required
+    def alterar_senha():
+        if request.method == 'POST':
+            senha_atual = request.form.get('senha_atual')
+            nova_senha = request.form.get('nova_senha')
+            confirma_senha = request.form.get('confirma_senha')
+
+            if not current_user.check_password(senha_atual):
+                flash('A senha atual está incorreta.', 'danger')
+            elif nova_senha != confirma_senha:
+                flash('A nova senha e a confirmação não coincidem.', 'danger')
+            else:
+                try:
+                    current_user.set_password(nova_senha)
+                    db.session.commit()
+                    flash('Senha alterada com sucesso!', 'success')
+                    return redirect(url_for('index'))
+                except ValueError as e:
+                    flash(str(e), 'danger')
+
+        return render_template('alterar_senha.html')
+
+    # Rota Principal (Dashboard com Filtro de Mês) - Protegida
     @app.route('/', methods=['GET', 'POST'])
+    @login_required
     def index():
         from app.models import Conta, Transacao, Configuracao
 
@@ -117,7 +181,7 @@ def create_app():
                         if blueprint.name not in app.blueprints:
                             app.register_blueprint(blueprint)
 
-    # Criação das tabelas e verificação/migração da coluna categoria
+    # Criação das tabelas, verificação/migração da coluna categoria e criação do utilizador padrão se necessário
     with app.app_context():
         db.create_all()
 
@@ -126,6 +190,14 @@ def create_app():
             db.session.execute(db.text("SELECT categoria FROM transacao LIMIT 1"))
         except Exception:
             db.session.execute(db.text("ALTER TABLE transacao ADD COLUMN categoria VARCHAR(100) DEFAULT 'Diversos'"))
+            db.session.commit()
+
+        # Cria um utilizador administrador padrão caso não exista nenhum (ex: admin / admin123)
+        from app.models import Usuario
+        if not Usuario.query.first():
+            admin_user = Usuario(username='admin')
+            admin_user.set_password('admin123')
+            db.session.add(admin_user)
             db.session.commit()
 
     return app

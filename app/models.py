@@ -1,5 +1,25 @@
 from datetime import datetime
 from app import db
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
+class Usuario(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+
+    def set_password(self, password):
+        # Validação rigorosa de senha forte
+        if len(password) < 6:
+            raise ValueError("A senha deve ter pelo menos 6 caracteres.")
+        if not any(char.isdigit() for char in password) or not any(char.isalpha() for char in password):
+            raise ValueError("A senha deve conter uma combinação de letras e números para ser segura.")
+
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 class Conta(db.Model):
