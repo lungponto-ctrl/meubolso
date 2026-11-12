@@ -93,18 +93,17 @@ def create_app():
     routes_dir = os.path.join(basedir, 'routes')
     if os.path.exists(routes_dir):
         for filename in os.listdir(routes_dir):
-            if filename.endswith('.py') & & filename != '__init__.py':  # Note: Python usa 'and', mantido correto abaixo
-                if filename.endswith('.py') and filename != '__init__.py':
-                    mod_name = filename[:-3]
-                    module = __import__(f'app.routes.{mod_name}', fromlist=['*'])
+            if filename.endswith('.py') and filename != '__init__.py':
+                mod_name = filename[:-3]
+                module = __import__(f'app.routes.{mod_name}', fromlist=['*'])
 
-                    # Procura automaticamente qualquer variável que termine com _bp no módulo
-                    for attr_name in dir(module):
-                        if attr_name.endswith('_bp'):
-                            blueprint = getattr(module, attr_name)
-                            # Garante que não vai registrar o mesmo blueprint duas vezes
-                            if blueprint.name not in app.blueprints:
-                                app.register_blueprint(blueprint)
+                # Procura automaticamente qualquer variável que termine com _bp no módulo
+                for attr_name in dir(module):
+                    if attr_name.endswith('_bp'):
+                        blueprint = getattr(module, attr_name)
+                        # Garante que não vai registrar o mesmo blueprint duas vezes
+                        if blueprint.name not in app.blueprints:
+                            app.register_blueprint(blueprint)
 
     # Criação das tabelas e verificação/migração da coluna categoria
     with app.app_context():
