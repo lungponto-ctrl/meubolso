@@ -76,8 +76,15 @@ def create_app():
                         if blueprint.name not in app.blueprints:
                             app.register_blueprint(blueprint)
 
-    # Criação das tabelas do banco de dados se não existirem
+    # Criação das tabelas e verificação/migração da coluna categoria
     with app.app_context():
         db.create_all()
+
+        # Garante de forma segura que a coluna categoria existe na tabela transacao
+        try:
+            db.session.execute(db.text("SELECT categoria FROM transacao LIMIT 1"))
+        except Exception:
+            db.session.execute(db.text("ALTER TABLE transacao ADD COLUMN categoria VARCHAR(100) DEFAULT 'Diversos'"))
+            db.session.commit()
 
     return app
