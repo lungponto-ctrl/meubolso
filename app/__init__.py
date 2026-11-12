@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 
@@ -16,7 +17,7 @@ def create_app():
 
     db.init_app(app)
 
-    # Rota Principal (Dashboard)
+    # Rota Principal (Dashboard com Filtro de Mês)
     @app.route('/', methods=['GET', 'POST'])
     def index():
         from app.models import Conta, Transacao, Configuracao
@@ -29,7 +30,7 @@ def create_app():
             db.session.commit()
 
         # Se o usuário enviou uma alteração de meta pelo formulário do dashboard
-        if request.method == 'POST':
+        if request.method == 'POST' and 'meta_gastos' in request.form:
             try:
                 novo_limite = float(request.form.get('meta_gastos', 3000.00))
                 config.meta_gastos = novo_limite
@@ -40,11 +41,31 @@ def create_app():
                 db.session.rollback()
 
         contas = Conta.query.all()
-        transacoes = Transacao.query.order_by(Transacao.data.desc()).limit(5).all()
 
-        # Calcular totais
-        total_receitas = sum(t.valor for t in Transacao.query.filter_by(tipo='receita').all())
-        total_despesas = sum(t.valor for t in Transacao.query.filter_by(tipo='despesa').all())
+        # Define o mês atual (formato YYYY-MM) como padrão ou pega o filtro da URL
+        mes_atual = datetime.utcnow().strftime('%Y-%m')
+        mes_filtro = request.args.get('mes', mes_atual)
+
+        query_transacoes = Transacao.query
+
+        # Filtra as transações estritamente pelo mês selecionado
+        if mes_filtro:
+            try:
+                ano, mes = mes_filtro.split('-')
+                query_transacoes = query_transacoes.filter(
+                    db.extract('year', Transacao.data) == int(ano),
+                    db.extract('month', Transacao.data) == int(mes)
+                )
+            except ValueError:
+                pass
+
+        # Pega as últimas transações do mês filtrado para exibir na tabela
+        transacoes = query_transacoes.order_by(Transacao.data.desc()).limit(5).all()
+
+        # Calcular totais filtrados pelo mês selecionado
+        total_receitas = sum(t.valor for t in query_transacoes.filter_by(tipo='receita').all())
+        total_despesas = sum(t.valor for t in query_transacoes.filter_by(tipo='despesa').all())
+
         saldo_inicial_total = sum(c.saldo_inicial for c in contas)
         saldo_total = saldo_inicial_total + total_receitas - total_despesas
 
@@ -58,7 +79,8 @@ def create_app():
                                total_receitas=total_receitas,
                                total_despesas=total_despesas,
                                meta_gastos=meta_gastos,
-                               percentual_gastos=percentual_gastos)
+                               percentual_gastos=percentual_gastos,
+                               mes_atual=mes_filtro)
 
     # Registro dinâmico seguro de blueprints criados na pasta app/routes/
     routes_dir = os.path.join(basedir, 'routes')
