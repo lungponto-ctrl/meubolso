@@ -54,6 +54,7 @@ def novo():
             descricao = request.form.get('descricao')
             valor = float(request.form.get('valor', 0.0))
             tipo = request.form.get('tipo')
+            categoria = request.form.get('categoria')  # Captura a categoria escolhida no formulário
             forma_pagamento = request.form.get('forma_pagamento')  # 'conta' ou 'cartao'
 
             # Captura a data informada ou usa a data atual caso venha vazia
@@ -72,11 +73,12 @@ def novo():
                     dias_a_somar = (i - 1) * 30
                     data_parcela = data_base + timedelta(days=dias_a_somar)
 
-                    # Mantém o nome limpo na descrição e controla as colunas de parcelas
+                    # Mantém o nome limpo na descrição e controla as colunas de parcelas e categoria
                     nova_transacao = Transacao(
                         descricao=descricao,
                         valor=valor_parcela,
                         tipo=tipo,
+                        categoria=categoria,
                         cartao_id=cartao_id,
                         data=data_parcela,
                         parcela_atual=i,
@@ -88,6 +90,7 @@ def novo():
                     descricao=descricao,
                     valor=valor,
                     tipo=tipo,
+                    categoria=categoria,
                     conta_id=conta_id,
                     cartao_id=cartao_id,
                     data=data_base,
@@ -115,6 +118,7 @@ def editar(id):
             transacao.descricao = request.form.get('descricao')
             transacao.valor = float(request.form.get('valor', 0.0))
             transacao.tipo = request.form.get('tipo')
+            transacao.categoria = request.form.get('categoria')  # Atualiza a categoria ao editar
 
             data_str = request.form.get('data')
             if data_str:
@@ -165,6 +169,7 @@ def transferir():
                 descricao=f"Transferência (Saída): {descricao}",
                 valor=valor,
                 tipo='despesa',
+                categoria='Diversos',
                 conta_id=conta_origem_id
             )
 
@@ -172,6 +177,7 @@ def transferir():
                 descricao=f"Transferência (Entrada): {descricao}",
                 valor=valor,
                 tipo='receita',
+                categoria='Receitas / Entradas',
                 conta_id=conta_destino_id
             )
 

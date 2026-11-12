@@ -41,6 +41,10 @@ class Transacao(db.Model):
     descricao = db.Column(db.String(150), nullable=False)
     valor = db.Column(db.Float, nullable=False)
     tipo = db.Column(db.String(20), nullable=False)  # 'receita' ou 'despesa'
+
+    # Campo de Categoria adicionado para suportar a seleção estruturada do cliente
+    categoria = db.Column(db.String(100), nullable=False, default='Diversos')
+
     data = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Vínculo com Conta (opcional caso o lançamento seja feito no cartão)

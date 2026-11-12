@@ -22,6 +22,45 @@
                     <input type="text" name="descricao" value="{{ transacao.descricao if transacao else '' }}" class="form-control bg-dark text-light border-secondary" placeholder="Ex: Supermercado, Aluguel, Farmácia..." required>
                 </div>
 
+                <!-- Categoria -->
+                <div class="mb-3">
+                    <label class="form-label text-light fw-semibold">Categoria</label>
+                    <select name="categoria" class="form-select bg-dark text-light border-secondary" required>
+                        <option value="" disabled {% if not transacao or not transacao.categoria %}selected{% endif %}>Selecione uma categoria...</option>
+
+                        <optgroup label="🏠 Moradia e Casa">
+                            <option value="Moradia" {% if transacao and transacao.categoria == 'Moradia' %}selected{% endif %}>Moradia (Aluguel, Condomínio, IPTU)</option>
+                            <option value="Moradia / Utilidades" {% if transacao and transacao.categoria == 'Moradia / Utilidades' %}selected{% endif %}>Moradia / Utilidades (Água, Luz, Internet)</option>
+                            <option value="Casa e Decoração" {% if transacao and transacao.categoria == 'Casa e Decoração' %}selected{% endif %}>Casa e Decoração</option>
+                        </optgroup>
+
+                        <optgroup label="🚗 Mobilidade">
+                            <option value="Transporte" {% if transacao and transacao.categoria == 'Transporte' %}selected{% endif %}>Transporte</option>
+                        </optgroup>
+
+                        <optgroup label="🩺 Saúde e Bem-Estar">
+                            <option value="Saúde e Bem-estar" {% if transacao and transacao.categoria == 'Saúde e Bem-estar' %}selected{% endif %}>Saúde e Bem-estar</option>
+                            <option value="Cuidados Pessoais" {% if transacao and transacao.categoria == 'Cuidados Pessoais' %}selected{% endif %}>Cuidados Pessoais</option>
+                        </optgroup>
+
+                        <optgroup label="🛍️ Estilo de Vida e Consumo">
+                            <option value="Lazer" {% if transacao and transacao.categoria == 'Lazer' %}selected{% endif %}>Lazer</option>
+                            <option value="Vestuário" {% if transacao and transacao.categoria == 'Vestuário' %}selected{% endif %}>Vestuário</option>
+                            <option value="Presentes" {% if transacao and transacao.categoria == 'Presentes' %}selected{% endif %}>Presentes</option>
+                        </optgroup>
+
+                        <optgroup label="🐾 Família e Outros">
+                            <option value="Pets" {% if transacao and transacao.categoria == 'Pets' %}selected{% endif %}>Pets</option>
+                            <option value="Dívidas e Empréstimos" {% if transacao and transacao.categoria == 'Dívidas e Empréstimos' %}selected{% endif %}>Dívidas e Empréstimos</option>
+                            <option value="Diversos" {% if transacao and transacao.categoria == 'Diversos' %}selected{% endif %}>Diversos</option>
+                        </optgroup>
+
+                        <optgroup label="💰 Entradas">
+                            <option value="Receitas / Entradas" {% if transacao and transacao.categoria == 'Receitas / Entradas' %}selected{% endif %}>Receitas / Entradas (Salário, Vendas, etc.)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
                 <!-- Valor e Tipo lado a lado -->
                 <div class="row mb-3">
                     <div class="col-md-6 mb-3 mb-md-0">
