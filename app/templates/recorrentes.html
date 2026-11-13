@@ -2,12 +2,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="fw-bold text-accent mb-1"><i class="fa-solid fa-calendar-check me-2"></i>Contas Recorrentes & Faturas</h2>
-        <p class="text-light opacity-75 mb-0">Gerencie suas despesas fixas mensais e evite atrasos.</p>
+        <h2 class="fw-bold text-accent mb-1"><i class="fa-solid fa-calendar-check me-2"></i>Contas Fixas, Variáveis & Parcelamentos</h2>
+        <p class="text-light opacity-75 mb-0">Acompanhe suas obrigações mensais, dívidas parceladas e evite atrasos.</p>
     </div>
     <div>
         <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNovaRecorrente">
-            <i class="fa-solid fa-plus me-1"></i> Nova Conta Fixa
+            <i class="fa-solid fa-plus me-1"></i> Novo Compromisso / Parcela
         </button>
     </div>
 </div>
@@ -22,19 +22,19 @@
     </div>
 </div>
 
-<!-- Lista de Contas Recorrentes -->
+<!-- Lista de Contas Recorrentes e Parcelamentos -->
 <div class="card p-4 shadow-sm border-0 bg-dark text-light">
     <h5 class="fw-bold mb-3 text-light"><i class="fa-solid fa-list-check me-2 text-accent"></i>Acompanhamento do Mês ({{ mes_atual }})</h5>
-    
+
     {% if contas_recorrentes %}
         <div class="table-responsive">
             <table class="table table-dark table-hover align-middle mb-0">
                 <thead>
                     <tr class="border-secondary text-muted small">
                         <th>DESCRIÇÃO / CATEGORIA</th>
+                        <th>CLASSIFICAÇÃO</th>
                         <th>VENCIMENTO</th>
                         <th>VALOR</th>
-                        <th>CONTA PADRÃO</th>
                         <th>STATUS</th>
                         <th class="text-end">AÇÕES</th>
                     </tr>
@@ -44,21 +44,33 @@
                     {% set pago = item.esta_pago_no_mes(mes_atual) %}
                     <tr class="border-secondary">
                         <td>
-                            <div class="fw-bold text-light">{{ item.descricao }}</div>
+                            <div class="fw-bold text-light">
+                                {{ item.descricao }}
+                                {% if item.total_parcelas > 1 %}
+                                    <span class="badge bg-info text-dark ms-2 fw-normal" style="font-size: 0.75rem;">
+                                        <i class="fa-solid fa-layer-group me-1"></i>{{ item.parcela_atual }}/{{ item.total_parcelas }}x
+                                    </span>
+                                {% endif %}
+                            </div>
                             <small class="text-light opacity-75"><i class="fa-solid fa-tag me-1"></i>{{ item.categoria }}</small>
+                            {% if item.total_parcelas > 1 and item.mes_termino %}
+                                <br><small class="text-warning"><i class="fa-solid fa-clock-rotate-left me-1"></i> Término previsto: {{ item.mes_termino }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.tipo_despesa == 'Fixa' %}
+                                <span class="badge bg-secondary"><i class="fa-solid fa-thumbtack me-1"></i> Despesa Fixa</span>
+                            {% elif item.tipo_despesa == 'Variável' %}
+                                <span class="badge bg-primary"><i class="fa-solid fa-sliders me-1"></i> Despesa Variável</span>
+                            {% else %}
+                                <span class="badge bg-danger text-light"><i class="fa-solid fa-credit-card me-1"></i> Parcelamento / Dívida</span>
+                            {% endif %}
                         </td>
                         <td>
                             <span class="badge bg-secondary text-light">Dia {{ item.dia_vencimento }}</span>
                         </td>
                         <td class="fw-bold text-light">
                             R$ {{ "%.2f"|format(item.valor) }}
-                        </td>
-                        <td>
-                            {% if item.conta %}
-                                <span class="badge bg-secondary"><i class="fa-solid fa-wallet me-1"></i>{{ item.conta.nome }}</span>
-                            {% else %}
-                                <span class="badge bg-dark border border-secondary text-light opacity-75">Não vinculada</span>
-                            {% endif %}
                         </td>
                         <td>
                             {% if pago %}
@@ -77,7 +89,7 @@
                                     </button>
                                 </form>
                                 {% endif %}
-                                <form action="{{ url_for('recorrentes.excluir', id=item.id) }}" method="POST" onsubmit="return confirm('Deseja realmente excluir esta conta recorrente?');">
+                                <form action="{{ url_for('recorrentes.excluir', id=item.id) }}" method="POST" onsubmit="return confirm('Deseja realmente excluir este item?');">
                                     <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
@@ -90,27 +102,28 @@
             </table>
         </div>
     {% else %}
-        <p class="text-light opacity-75 mb-0">Nenhuma conta recorrente cadastrada. Clique em "Nova Conta Fixa" para começar.</p>
+        <p class="text-light opacity-75 mb-0">Nenhum compromisso cadastrado. Clique em "Novo Compromisso / Parcela" para começar.</p>
     {% endif %}
 </div>
 
-<!-- Modal para Nova Conta Recorrente -->
+<!-- Modal para Novo Compromisso ou Parcela -->
 <div class="modal fade" id="modalNovaRecorrente" tabindex="-1" aria-labelledby="modalNovaRecorrenteLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-light border-secondary">
             <form method="POST">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title fw-bold text-accent" id="modalNovaRecorrenteLabel"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Nova Conta Recorrente / Fatura</h5>
+                    <h5 class="modal-title fw-bold text-accent" id="modalNovaRecorrenteLabel"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Novo Compromisso ou Parcelamento</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label text-light opacity-75">Descrição (Ex: Aluguel, Internet, Fatura Nubank)</label>
-                        <input type="text" name="descricao" class="form-control bg-dark text-light border-secondary" required placeholder="Ex: Internet Fibra">
+                        <label class="form-label text-light opacity-75">Descrição (Ex: Aluguel, Empréstimo, Compra Parcelada)</label>
+                        <input type="text" name="descricao" class="form-control bg-dark text-light border-secondary" required placeholder="Ex: Sofá Parcelado">
                     </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label text-light opacity-75">Valor Estimado (R$)</label>
+                            <label class="form-label text-light opacity-75">Valor da Parcela / Conta (R$)</label>
                             <input type="number" step="0.01" name="valor" class="form-control bg-dark text-light border-secondary" required placeholder="0.00">
                         </div>
                         <div class="col-md-6 mb-3">
@@ -118,12 +131,40 @@
                             <input type="number" min="1" max="31" name="dia_vencimento" class="form-control bg-dark text-light border-secondary" required value="10">
                         </div>
                     </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-light opacity-75">Classificação da Despesa</label>
+                            <select name="tipo_despesa" class="form-select bg-dark text-light border-secondary">
+                                <option value="Fixa">Despesa Fixa</option>
+                                <option value="Variável">Despesa Variável</option>
+                                <option value="Parcelamento">Parcelamento / Dívida</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-light opacity-75">Total de Parcelas (Ex: 8)</label>
+                            <input type="number" min="1" name="total_parcelas" class="form-control bg-dark text-light border-secondary" value="1" placeholder="1 para fixa">
+                            <small class="text-muted" style="font-size: 0.75rem;">Se for fixa, deixe 1.</small>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label text-light opacity-75">Categoria</label>
-                        <input type="text" name="categoria" class="form-control bg-dark text-light border-secondary" value="Contas Fixas">
+                        <select name="categoria" class="form-select bg-dark text-light border-secondary">
+                            <option value="Contas Fixas">Contas Fixas</option>
+                            <option value="Alimentação">Alimentação</option>
+                            <option value="Moradia">Moradia</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Saúde">Saúde</option>
+                            <option value="Educação">Educação</option>
+                            <option value="Lazer">Lazer</option>
+                            <option value="Dívidas / Parcelamentos">Dívidas / Parcelamentos</option>
+                            <option value="Outros">Outros</option>
+                        </select>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label text-light opacity-75">Conta Bancária para Débito Automático (Opcional)</label>
+                        <label class="form-label text-light opacity-75">Conta Bancária para Débito (Opcional)</label>
                         <select name="conta_id" class="form-select bg-dark text-light border-secondary">
                             <option value="">Nenhuma (Apenas controle)</option>
                             {% for c in contas_bancarias %}
@@ -134,7 +175,7 @@
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Conta</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Compromisso</button>
                 </div>
             </form>
         </div>

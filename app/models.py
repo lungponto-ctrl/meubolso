@@ -87,10 +87,18 @@ class Configuracao(db.Model):
 
 class ContaRecorrente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    descricao = db.Column(db.String(150), nullable=False)  # Ex: Aluguel, Internet, Fatura Nubank
+    descricao = db.Column(db.String(150), nullable=False)  # Ex: Aluguel, Internet, Financiamento
     valor = db.Column(db.Float, nullable=False)
     dia_vencimento = db.Column(db.Integer, nullable=False)  # Dia do mês (ex: 5, 10, 20)
     categoria = db.Column(db.String(100), nullable=False, default='Contas Fixas')
+
+    # Classificação de Despesa (Fixa, Variável, Parcelamento/Dívida)
+    tipo_despesa = db.Column(db.String(50), nullable=False, default='Fixa')
+
+    # Controle de Parcelamentos
+    parcela_atual = db.Column(db.Integer, default=1)
+    total_parcelas = db.Column(db.Integer, default=1)
+    mes_inicio = db.Column(db.String(7), nullable=True)  # Formato 'YYYY-MM'
 
     # Guarda o mês (formato 'YYYY-MM') em que foi pago pela última vez
     ultimo_mes_pago = db.Column(db.String(7), nullable=True)
@@ -101,3 +109,17 @@ class ContaRecorrente(db.Model):
 
     def esta_pago_no_mes(self, mes_referencia):
         return self.ultimo_mes_pago == mes_referencia
+
+    @property
+    def mes_termino(self):
+        """Calcula o mês em que o parcelamento vai acabar"""
+        if self.total_parcelas <= 1 or not self.mes_inicio:
+            return None
+        try:
+            ano, mes = map(int, self.mes_inicio.split('-'))
+            mes_total = mes + (self.total_parcelas - 1)
+            ano += (mes_total - 1) // 12
+            mes = ((mes_total - 1) % 12) + 1
+            return f"{ano:04d}-{mes:02d}"
+        except Exception:
+            return None
