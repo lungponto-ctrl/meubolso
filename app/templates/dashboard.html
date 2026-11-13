@@ -114,6 +114,48 @@
     </div>
 </div>
 
+<!-- Seção de Alerta de Contas Fixas Pendentes -->
+<div class="card p-4 shadow-sm border-0 bg-dark text-light mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0 text-light">
+            <i class="fa-solid fa-triangle-exclamation me-2 text-warning"></i>Contas Fixas Pendentes do Mês
+        </h5>
+        <a href="{{ url_for('recorrentes.index') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fa-solid fa-list-check me-1"></i> Gerenciar Fixas
+        </a>
+    </div>
+
+    {% if contas_para_vencer %}
+        <div class="row">
+            {% for conta in contas_para_vencer %}
+            <div class="col-md-4 mb-3">
+                <div class="p-3 rounded border border-secondary bg-secondary bg-opacity-10 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-light">{{ conta.descricao }}</span>
+                            <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">
+                                <i class="fa-regular fa-clock me-1"></i>Dia {{ conta.dia_vencimento }}
+                            </span>
+                        </div>
+                        <p class="text-light opacity-75 small mb-2">Categoria: {{ conta.categoria }}</p>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-secondary">
+                        <span class="fw-bold text-danger">R$ {{ "%.2f"|format(conta.valor) }}</span>
+                        <a href="{{ url_for('recorrentes.index') }}" class="btn btn-sm btn-success">
+                            <i class="fa-solid fa-check me-1"></i> Pagar
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-success bg-dark border-success text-success mb-0 py-2" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> Perfeito! Não há contas fixas pendentes para este mês.
+        </div>
+    {% endif %}
+</div>
+
 <!-- Bloco Único de Últimas Transações -->
 <div class="card p-4 shadow-sm border-0 bg-dark text-light">
     <h5 class="fw-bold mb-3 text-light"><i class="fa-solid fa-clock-rotate-left me-2 text-accent"></i>Últimas Transações do Mês</h5>

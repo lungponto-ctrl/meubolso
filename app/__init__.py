@@ -88,7 +88,7 @@ def create_app():
     @app.route('/', methods=['GET', 'POST'])
     @login_required
     def index():
-        from app.models import Conta, Transacao, Configuracao
+        from app.models import Conta, Transacao, Configuracao, ContaRecorrente
 
         # Busca ou cria a configuração padrão no banco
         config = Configuracao.query.first()
@@ -162,6 +162,16 @@ def create_app():
         # O saldo total soma receitas e dinheiro guardado, subtraindo despesas
         saldo_total = saldo_inicial_total + total_receitas + total_guardado - total_despesas
 
+        # Buscar Contas Recorrentes para verificar vencimentos e alertas do mês
+        recorrentes_todas = ContaRecorrente.query.all()
+        contas_para_vencer = []
+        for r in recorrentes_todas:
+            if not r.esta_pago_no_mes(mes_filtro):
+                contas_para_vencer.append(r)
+
+        # Ordena por dia de vencimento
+        contas_para_vencer = sorted(contas_para_vencer, key=lambda x: x.dia_vencimento)
+
         # Metas e Configurações Dinâmicas
         meta_gastos = config.meta_gastos
         salario_base = config.salario_base
@@ -178,7 +188,8 @@ def create_app():
                                total_despesas=total_despesas,
                                meta_gastos=meta_gastos,
                                percentual_gastos=percentual_gastos,
-                               mes_atual=mes_filtro)
+                               mes_atual=mes_filtro,
+                               contas_para_vencer=contas_para_vencer)
 
     # Registro dinâmico seguro de blueprints criados na pasta app/routes/
     routes_dir = os.path.join(basedir, 'routes')
