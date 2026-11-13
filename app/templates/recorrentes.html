@@ -48,7 +48,7 @@
                                 {{ item.descricao }}
                                 {% if item.total_parcelas > 1 %}
                                     <span class="badge bg-info text-dark ms-2 fw-normal" style="font-size: 0.75rem;">
-                                        <i class="fa-solid fa-layer-group me-1"></i>Parcela {{ item.parcela_atual }} de {{ item.total_parcelas }} (Faltam {{ item.parcelas_restantes }})
+                                        <i class="fa-solid fa-layer-group me-1"></i>{{ item.parcela_atual }}/{{ item.total_parcelas }}x
                                     </span>
                                 {% endif %}
                             </div>

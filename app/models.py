@@ -111,14 +111,6 @@ class ContaRecorrente(db.Model):
         return self.ultimo_mes_pago == mes_referencia
 
     @property
-    def parcelas_restantes(self):
-        """Calcula quantas parcelas ainda faltam pagar"""
-        if self.total_parcelas <= 1:
-            return 0
-        restam = self.total_parcelas - self.parcela_atual
-        return max(0, restam)
-
-    @property
     def mes_termino(self):
         """Calcula o mês em que o parcelamento vai acabar"""
         if self.total_parcelas <= 1 or not self.mes_inicio:
