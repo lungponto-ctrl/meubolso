@@ -84,6 +84,30 @@ def pagar(id):
     return redirect(url_for('recorrentes.index', mes=mes_filtro))
 
 
+@recorrentes_bp.route('/editar/<int:id>', methods=['POST'])
+@login_required
+def editar(id):
+    conta_rec = ContaRecorrente.query.get_or_404(id)
+    try:
+        conta_rec.descricao = request.form.get('descricao')
+        conta_rec.valor = float(request.form.get('valor', 0.0))
+        conta_rec.dia_vencimento = int(request.form.get('dia_vencimento', 10))
+        conta_rec.tipo_despesa = request.form.get('tipo_despesa', 'Fixa')
+        conta_rec.total_parcelas = int(request.form.get('total_parcelas', 1))
+        conta_rec.categoria = request.form.get('categoria', 'Contas Fixas')
+
+        conta_id = request.form.get('conta_id')
+        conta_rec.conta_id = int(conta_id) if conta_id else None
+
+        db.session.commit()
+        flash('Compromisso atualizado com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar compromisso: {e}', 'danger')
+
+    return redirect(url_for('recorrentes.index'))
+
+
 @recorrentes_bp.route('/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir(id):

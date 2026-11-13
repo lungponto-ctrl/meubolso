@@ -89,6 +89,12 @@
                                     </button>
                                 </form>
                                 {% endif %}
+                                <!-- Botão para abrir modal de edição -->
+                                <button type="button" class="btn btn-outline-warning btn-sm" title="Editar"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalEditarRecorrente{{ item.id }}">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
                                 <form action="{{ url_for('recorrentes.excluir', id=item.id) }}" method="POST" onsubmit="return confirm('Deseja realmente excluir este item?');">
                                     <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
                                         <i class="fa-solid fa-trash"></i>
@@ -97,6 +103,75 @@
                             </div>
                         </td>
                     </tr>
+
+                    <!-- Modal de Edição para cada Item -->
+                    <div class="modal fade" id="modalEditarRecorrente{{ item.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content bg-dark text-light border-secondary">
+                                <form action="{{ url_for('recorrentes.editar', id=item.id) }}" method="POST">
+                                    <div class="modal-header border-secondary">
+                                        <h5 class="modal-title fw-bold text-accent"><i class="fa-solid fa-pen-to-square me-2"></i>Editar Compromisso</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body text-start">
+                                        <div class="mb-3">
+                                            <label class="form-label text-light opacity-75">Descrição</label>
+                                            <input type="text" name="descricao" value="{{ item.descricao }}" class="form-control bg-dark text-light border-secondary" required>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label text-light opacity-75">Valor (R$)</label>
+                                                <input type="number" step="0.01" name="valor" value="{{ item.valor }}" class="form-control bg-dark text-light border-secondary" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label text-light opacity-75">Dia de Vencimento</label>
+                                                <input type="number" min="1" max="31" name="dia_vencimento" value="{{ item.dia_vencimento }}" class="form-control bg-dark text-light border-secondary" required>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label text-light opacity-75">Classificação</label>
+                                                <select name="tipo_despesa" class="form-select bg-dark text-light border-secondary">
+                                                    <option value="Fixa" {% if item.tipo_despesa == 'Fixa' %}selected{% endif %}>Despesa Fixa</option>
+                                                    <option value="Variável" {% if item.tipo_despesa == 'Variável' %}selected{% endif %}>Despesa Variável</option>
+                                                    <option value="Parcelamento" {% if item.tipo_despesa == 'Parcelamento' %}selected{% endif %}>Parcelamento / Dívida</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label text-light opacity-75">Total de Parcelas</label>
+                                                <input type="number" min="1" name="total_parcelas" value="{{ item.total_parcelas }}" class="form-control bg-dark text-light border-secondary">
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label text-light opacity-75">Categoria</label>
+                                            <select name="categoria" class="form-select bg-dark text-light border-secondary">
+                                                {% for cat in ['Contas Fixas', 'Alimentação', 'Moradia', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Dívidas / Parcelamentos', 'Outros'] %}
+                                                    <option value="{{ cat }}" {% if item.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label text-light opacity-75">Conta Bancária</label>
+                                            <select name="conta_id" class="form-select bg-dark text-light border-secondary">
+                                                <option value="">Nenhuma (Apenas controle)</option>
+                                                {% for c in contas_bancarias %}
+                                                    <option value="{{ c.id }}" {% if item.conta_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer border-secondary">
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Alterações</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
                 </tbody>
             </table>
