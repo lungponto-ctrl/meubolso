@@ -93,17 +93,19 @@ def create_app():
         # Busca ou cria a configuração padrão no banco
         config = Configuracao.query.first()
         if not config:
-            config = Configuracao(meta_gastos=3000.00, salario_base=0.00)
+            config = Configuracao(meta_gastos=3000.00, salario_base=0.00, dia_salario=5)
             db.session.add(config)
             db.session.commit()
 
-        # Se o usuário enviou uma alteração de meta de gastos ou salário base pelo dashboard
+        # Se o usuário enviou alteração de meta, salário base ou dia do salário pelo dashboard
         if request.method == 'POST':
             try:
                 if 'meta_gastos' in request.form:
                     config.meta_gastos = float(request.form.get('meta_gastos', 3000.00))
                 if 'salario_base' in request.form:
                     config.salario_base = float(request.form.get('salario_base', 0.00))
+                if 'dia_salario' in request.form:
+                    config.dia_salario = int(request.form.get('dia_salario', 5))
                 db.session.commit()
                 return redirect(url_for('index'))
             except Exception as e:
@@ -163,6 +165,7 @@ def create_app():
         # Metas e Configurações Dinâmicas
         meta_gastos = config.meta_gastos
         salario_base = config.salario_base
+        dia_salario = config.dia_salario
         percentual_gastos = (total_despesas / meta_gastos * 100) if meta_gastos > 0 else 0
 
         return render_template('dashboard.html',
@@ -170,6 +173,7 @@ def create_app():
                                saldo_total=saldo_total,
                                total_receitas=total_receitas,
                                salario_base=salario_base,
+                               dia_salario=dia_salario,
                                total_guardado=total_guardado,
                                total_despesas=total_despesas,
                                meta_gastos=meta_gastos,
@@ -208,6 +212,13 @@ def create_app():
             db.session.execute(db.text("SELECT salario_base FROM configuracao LIMIT 1"))
         except Exception:
             db.session.execute(db.text("ALTER TABLE configuracao ADD COLUMN salario_base FLOAT DEFAULT 0.00"))
+            db.session.commit()
+
+        # Garante de forma segura que a coluna dia_salario existe na tabela configuracao
+        try:
+            db.session.execute(db.text("SELECT dia_salario FROM configuracao LIMIT 1"))
+        except Exception:
+            db.session.execute(db.text("ALTER TABLE configuracao ADD COLUMN dia_salario INTEGER DEFAULT 5"))
             db.session.commit()
 
         # Garante que a usuária Daniely está configurada no sistema com a senha correta

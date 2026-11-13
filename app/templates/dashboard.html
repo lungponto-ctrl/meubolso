@@ -61,7 +61,8 @@
                     <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
-            <h3 class="fw-bold text-success">R$ {{ "%.2f"|format(total_receitas|default(0.0)) }}</h3>
+            <h3 class="fw-bold text-success mb-1">R$ {{ "%.2f"|format(total_receitas|default(0.0)) }}</h3>
+            <small class="text-light opacity-50" style="font-size: 0.75rem;"><i class="fa-solid fa-calendar-day me-1"></i> Cai todo dia {{ dia_salario|default(5) }}</small>
         </div>
     </div>
     <div class="col-md-3 mb-3">
@@ -177,24 +178,29 @@
     </div>
 </div>
 
-<!-- Modal para Editar o Salário Fixo Mensal -->
+<!-- Modal para Editar o Salário Fixo Mensal e Dia de Recebimento -->
 <div class="modal fade" id="modalEditarSalario" tabindex="-1" aria-labelledby="modalEditarSalarioLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-light border-secondary">
             <form method="POST">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title fw-bold text-accent" id="modalEditarSalarioLabel"><i class="fa-solid fa-money-bill-wave me-2"></i>Definir Salário Fixo Mensal</h5>
+                    <h5 class="modal-title fw-bold text-accent" id="modalEditarSalarioLabel"><i class="fa-solid fa-money-bill-wave me-2"></i>Configurar Salário Mensal</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label text-light opacity-75">Valor do Salário / Receita Mensal Fixa (R$)</label>
+                        <label class="form-label text-light opacity-75">Valor do Salário / Receita Fixa (R$)</label>
                         <input type="number" step="0.01" name="salario_base" value="{{ salario_base|default(0.0) }}" class="form-control bg-dark text-light border-secondary" required placeholder="0.00">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light opacity-75">Dia do Mês em que o Salário Cai (Ex: 5)</label>
+                        <input type="number" min="1" max="31" name="dia_salario" value="{{ dia_salario|default(5) }}" class="form-control bg-dark text-light border-secondary" required>
+                        <small class="text-muted" style="font-size: 0.75rem;">Dia padrão do mês em que este rendimento fica disponível.</small>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Salário</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Configuração</button>
                 </div>
             </form>
         </div>

@@ -84,6 +84,7 @@ class Configuracao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     meta_gastos = db.Column(db.Float, default=3000.00, nullable=False)
     salario_base = db.Column(db.Float, default=0.00, nullable=False)  # Salário fixo mensal configurável
+    dia_salario = db.Column(db.Integer, default=5, nullable=False)  # Dia do mês em que o salário cai
 
 
 class ContaRecorrente(db.Model):
