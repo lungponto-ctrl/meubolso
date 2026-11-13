@@ -90,22 +90,24 @@ def create_app():
     def index():
         from app.models import Conta, Transacao, Configuracao
 
-        # Busca ou cria a configuração padrão de meta no banco
+        # Busca ou cria a configuração padrão no banco
         config = Configuracao.query.first()
         if not config:
-            config = Configuracao(meta_gastos=3000.00)
+            config = Configuracao(meta_gastos=3000.00, salario_base=0.00)
             db.session.add(config)
             db.session.commit()
 
-        # Se o usuário enviou uma alteração de meta pelo formulário do dashboard
-        if request.method == 'POST' and 'meta_gastos' in request.form:
+        # Se o usuário enviou uma alteração de meta de gastos ou salário base pelo dashboard
+        if request.method == 'POST':
             try:
-                novo_limite = float(request.form.get('meta_gastos', 3000.00))
-                config.meta_gastos = novo_limite
+                if 'meta_gastos' in request.form:
+                    config.meta_gastos = float(request.form.get('meta_gastos', 3000.00))
+                if 'salario_base' in request.form:
+                    config.salario_base = float(request.form.get('salario_base', 0.00))
                 db.session.commit()
                 return redirect(url_for('index'))
             except Exception as e:
-                print(f"[ERRO AO ATUALIZAR META]: {e}")
+                print(f"[ERRO AO ATUALIZAR CONFIGURAÇÃO]: {e}")
                 db.session.rollback()
 
         contas = Conta.query.all()
@@ -133,13 +135,16 @@ def create_app():
         # Calcular totais filtrados pelo mês selecionado
         transacoes_receita = query_transacoes.filter_by(tipo='receita').all()
 
-        # Receitas reais (Salários / Entradas genuínas, excluindo investimentos, transferências e guardados)
-        total_receitas = sum(
+        # Receitas reais extras das transações
+        receitas_transacoes = sum(
             t.valor for t in transacoes_receita
             if t.categoria != 'Investimentos / Poupança'
             and 'Transferência' not in t.descricao
             and 'Guardado' not in t.descricao
         )
+
+        # Total de receitas agora soma o Salário Fixo Mensal configurado + entradas extras
+        total_receitas = config.salario_base + receitas_transacoes
 
         # Dinheiro Guardado (Soma poupanças, transferências e valores guardados)
         total_guardado = sum(
@@ -155,14 +160,16 @@ def create_app():
         # O saldo total soma receitas e dinheiro guardado, subtraindo despesas
         saldo_total = saldo_inicial_total + total_receitas + total_guardado - total_despesas
 
-        # Meta de Gastos Mensal Dinâmica
+        # Metas e Configurações Dinâmicas
         meta_gastos = config.meta_gastos
+        salario_base = config.salario_base
         percentual_gastos = (total_despesas / meta_gastos * 100) if meta_gastos > 0 else 0
 
         return render_template('dashboard.html',
                                transacoes=transacoes,
                                saldo_total=saldo_total,
                                total_receitas=total_receitas,
+                               salario_base=salario_base,
                                total_guardado=total_guardado,
                                total_despesas=total_despesas,
                                meta_gastos=meta_gastos,
@@ -185,7 +192,7 @@ def create_app():
                         if blueprint.name not in app.blueprints:
                             app.register_blueprint(blueprint)
 
-    # Criação das tabelas, verificação/migração da coluna categoria e configuração da usuária Daniely
+    # Criação das tabelas, migrações seguras e configuração da usuária Daniely
     with app.app_context():
         db.create_all()
 
@@ -194,6 +201,13 @@ def create_app():
             db.session.execute(db.text("SELECT categoria FROM transacao LIMIT 1"))
         except Exception:
             db.session.execute(db.text("ALTER TABLE transacao ADD COLUMN categoria VARCHAR(100) DEFAULT 'Diversos'"))
+            db.session.commit()
+
+        # Garante de forma segura que a coluna salario_base existe na tabela configuracao
+        try:
+            db.session.execute(db.text("SELECT salario_base FROM configuracao LIMIT 1"))
+        except Exception:
+            db.session.execute(db.text("ALTER TABLE configuracao ADD COLUMN salario_base FLOAT DEFAULT 0.00"))
             db.session.commit()
 
         # Garante que a usuária Daniely está configurada no sistema com a senha correta
@@ -209,8 +223,5 @@ def create_app():
                 novo_usuario.set_password('Dany97883437')
                 db.session.add(novo_usuario)
             db.session.commit()
-        else:
-            # Caso já exista, garante que a senha está atualizada corretamente (opcional, mas seguro)
-            pass
 
     return app

@@ -83,6 +83,7 @@ class Transacao(db.Model):
 class Configuracao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     meta_gastos = db.Column(db.Float, default=3000.00, nullable=False)
+    salario_base = db.Column(db.Float, default=0.00, nullable=False)  # Salário fixo mensal configurável
 
 
 class ContaRecorrente(db.Model):
@@ -109,6 +110,14 @@ class ContaRecorrente(db.Model):
 
     def esta_pago_no_mes(self, mes_referencia):
         return self.ultimo_mes_pago == mes_referencia
+
+    @property
+    def parcelas_restantes(self):
+        """Calcula quantas parcelas ainda faltam pagar"""
+        if self.total_parcelas <= 1:
+            return 0
+        restam = self.total_parcelas - self.parcela_atual
+        return max(0, restam)
 
     @property
     def mes_termino(self):

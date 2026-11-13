@@ -45,7 +45,7 @@
     </div>
 </div>
 
-<!-- Cards de Resumo Financeiro (Com Dinheiro Guardado Separado) -->
+<!-- Cards de Resumo Financeiro -->
 <div class="row mb-4">
     <div class="col-md-3 mb-3">
         <div class="card p-3 shadow-sm border-0 bg-dark text-light h-100">
@@ -55,7 +55,12 @@
     </div>
     <div class="col-md-3 mb-3">
         <div class="card p-3 shadow-sm border-0 bg-dark text-light h-100">
-            <h6 class="text-light opacity-75"><i class="fa-solid fa-money-bill-wave text-success me-1"></i> Receitas (Salário)</h6>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <h6 class="text-light opacity-75 mb-0"><i class="fa-solid fa-money-bill-wave text-success me-1"></i> Receitas (Salário)</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEditarSalario" title="Editar Salário Mensal">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
             <h3 class="fw-bold text-success">R$ {{ "%.2f"|format(total_receitas|default(0.0)) }}</h3>
         </div>
     </div>
@@ -80,7 +85,6 @@
         <div class="card p-4 shadow-sm border-0 bg-dark text-light h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold mb-0 text-light"><i class="fa-solid fa-bullseye me-2 text-accent"></i>Meta de Gastos Mensal</h5>
-                <!-- Botão para abrir o modal de alteração de meta -->
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEditarMeta" title="Editar Limite">
                     <i class="fa-solid fa-gear"></i>
                 </button>
@@ -167,6 +171,30 @@
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Nova Meta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar o Salário Fixo Mensal -->
+<div class="modal fade" id="modalEditarSalario" tabindex="-1" aria-labelledby="modalEditarSalarioLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-secondary">
+            <form method="POST">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold text-accent" id="modalEditarSalarioLabel"><i class="fa-solid fa-money-bill-wave me-2"></i>Definir Salário Fixo Mensal</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-light opacity-75">Valor do Salário / Receita Mensal Fixa (R$)</label>
+                        <input type="number" step="0.01" name="salario_base" value="{{ salario_base|default(0.0) }}" class="form-control bg-dark text-light border-secondary" required placeholder="0.00">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Salvar Salário</button>
                 </div>
             </form>
         </div>
