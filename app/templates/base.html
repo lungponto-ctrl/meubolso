@@ -71,10 +71,13 @@
                     </li>
                 </ul>
 
-                <!-- Menu de Autenticação (Usuário, Alterar Senha e Sair) -->
+                <!-- Menu de Autenticação (Usuário Dinâmico, Alterar Senha e Sair) -->
                 <ul class="navbar-nav ms-auto align-items-lg-center gap-2 mt-3 mt-lg-0">
                     <li class="nav-item me-lg-2">
-                        <span class="text-light small"><i class="fa-solid fa-user-circle me-1 text-success"></i> <b>Daniely</b></span>
+                        <span class="text-light small">
+                            <i class="fa-solid fa-user-circle me-1 text-success"></i>
+                            <b>{{ current_user.username }}</b>
+                        </span>
                     </li>
                     <li class="nav-item">
                         <a class="btn btn-outline-secondary btn-sm text-light border-secondary w-100" href="{{ url_for('alterar_senha') }}">
