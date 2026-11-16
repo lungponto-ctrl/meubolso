@@ -1,4 +1,5 @@
 import os
+import secrets
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -25,7 +26,8 @@ def create_app():
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, '../database.db')
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'appmeubolso-secret-key')
+    # Usa a SECRET_KEY do Railway ou gera uma chave segura aleatória
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 
     db.init_app(app)
 
@@ -53,6 +55,11 @@ def create_app():
 
         if current_user.is_authenticated:
             return redirect(url_for('index'))
+
+        # Permite trancar novos cadastros no Railway criando a variável BLOQUEAR_CADASTRO=true
+        if os.environ.get('BLOQUEAR_CADASTRO', '').lower() == 'true':
+            flash('Novos cadastros estão temporariamente desativados.', 'warning')
+            return redirect(url_for('login'))
 
         if request.method == 'POST':
             username = request.form.get('username', '').strip()
@@ -277,24 +284,13 @@ def create_app():
                         if blueprint.name not in app.blueprints:
                             app.register_blueprint(blueprint)
 
-    # Criação das tabelas, migrações seguras e configuração da usuária Daniely
+    # Criação das tabelas e migrações seguras (sem senhas expostas no código)
     with app.app_context():
         db.create_all()
 
-        # Garante que a usuária Daniely está configurada no sistema com a senha correta
         from app.models import Usuario
-        user_daniely = Usuario.query.filter_by(username='Daniely').first()
-        if not user_daniely:
-            user_antigo = Usuario.query.first()
-            if user_antigo:
-                user_antigo.username = 'Daniely'
-                user_antigo.set_password('Dany97883437')
-                user_daniely = user_antigo
-            else:
-                user_daniely = Usuario(username='Daniely')
-                user_daniely.set_password('Dany97883437')
-                db.session.add(user_daniely)
-            db.session.commit()
+        primeiro_usuario = Usuario.query.first()
+        default_user_id = primeiro_usuario.id if primeiro_usuario else 1
 
         # 1. Migração segura: adiciona usuario_id nas tabelas antigas
         tabelas_para_migrar = ['conta', 'cartao', 'transacao', 'configuracao', 'conta_recorrente']
@@ -304,7 +300,7 @@ def create_app():
             except Exception:
                 db.session.rollback()
                 try:
-                    db.session.execute(db.text(f"ALTER TABLE {tabela} ADD COLUMN usuario_id INTEGER DEFAULT {user_daniely.id}"))
+                    db.session.execute(db.text(f"ALTER TABLE {tabela} ADD COLUMN usuario_id INTEGER DEFAULT {default_user_id}"))
                     db.session.commit()
                 except Exception as e:
                     db.session.rollback()
