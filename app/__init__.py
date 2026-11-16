@@ -294,4 +294,16 @@ def create_app():
                 db.session.execute(db.text(f"ALTER TABLE {tabela} ADD COLUMN usuario_id INTEGER DEFAULT {user_daniely.id}"))
                 db.session.commit()
 
+        # Migração segura: garante que a coluna salario_base existe na tabela configuracao
+        try:
+            db.session.execute(db.text("SELECT salario_base FROM configuracao LIMIT 1"))
+        except Exception:
+            try:
+                db.session.execute(db.text("ALTER TABLE configuracao ADD COLUMN salario_base FLOAT DEFAULT 0.0"))
+                db.session.execute(db.text("ALTER TABLE configuracao ADD COLUMN dia_salario INTEGER DEFAULT 5"))
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(f"[ERRO AO ADICIONAR COLUNAS DE SALARIO]: {e}")
+
     return app
