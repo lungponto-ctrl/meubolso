@@ -15,9 +15,11 @@ def create_app():
     database_url = os.environ.get('DATABASE_URL')
 
     if database_url:
-        # Ajuste de compatibilidade exigido pelo SQLAlchemy 2.0+
+        # Garante o uso do driver psycopg (versão 3 compatível com Python 3.13)
         if database_url.startswith("postgres://"):
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
+            database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
+        elif database_url.startswith("postgresql://"):
+            database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     else:
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, '../database.db')
