@@ -14,18 +14,35 @@ def index():
     mes_filtro = request.args.get('mes', mes_atual)
 
     if request.method == 'POST':
-        descricao = request.form.get('descricao')
-        valor = float(request.form.get('valor', 0.0))
-        dia_vencimento = int(request.form.get('dia_vencimento', 10))
+        descricao = request.form.get('descricao', '').strip()
+
+        # Tratamento seguro para valores numéricos (evita crash se vier vazio ou inválido)
+        try:
+            valor = float(request.form.get('valor') or 0.0)
+        except ValueError:
+            valor = 0.0
+
+        try:
+            dia_vencimento = int(request.form.get('dia_vencimento') or 10)
+        except ValueError:
+            dia_vencimento = 10
+
+        try:
+            total_parcelas = int(request.form.get('total_parcelas') or 1)
+        except ValueError:
+            total_parcelas = 1
+
         categoria = request.form.get('categoria', 'Contas Fixas')
         tipo_despesa = request.form.get('tipo_despesa', 'Fixa')
-        total_parcelas = int(request.form.get('total_parcelas', 1))
 
         conta_id_raw = request.form.get('conta_id')
         conta_id = None
         if conta_id_raw:
-            conta_valida = Conta.query.filter_by(id=int(conta_id_raw), usuario_id=current_user.id).first()
-            conta_id = conta_valida.id if conta_valida else None
+            try:
+                conta_valida = Conta.query.filter_by(id=int(conta_id_raw), usuario_id=current_user.id).first()
+                conta_id = conta_valida.id if conta_valida else None
+            except ValueError:
+                conta_id = None
 
         if descricao and valor > 0:
             nova_conta = ContaRecorrente(
@@ -44,7 +61,7 @@ def index():
             db.session.commit()
             flash('Compromisso cadastrado com sucesso!', 'success')
         else:
-            flash('Preencha a descrição e um valor válido.', 'danger')
+            flash('Preencha a descrição corretamente e informe um valor maior que zero.', 'danger')
 
         return redirect(url_for('recorrentes.index', mes=mes_filtro))
 
@@ -95,17 +112,34 @@ def pagar(id):
 def editar(id):
     conta_rec = ContaRecorrente.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
     try:
-        conta_rec.descricao = request.form.get('descricao')
-        conta_rec.valor = float(request.form.get('valor', 0.0))
-        conta_rec.dia_vencimento = int(request.form.get('dia_vencimento', 10))
+        conta_rec.descricao = request.form.get('descricao', '').strip()
+
+        try:
+            conta_rec.valor = float(request.form.get('valor') or 0.0)
+        except ValueError:
+            conta_rec.valor = 0.0
+
+        try:
+            conta_rec.dia_vencimento = int(request.form.get('dia_vencimento') or 10)
+        except ValueError:
+            conta_rec.dia_vencimento = 10
+
         conta_rec.tipo_despesa = request.form.get('tipo_despesa', 'Fixa')
-        conta_rec.total_parcelas = int(request.form.get('total_parcelas', 1))
+
+        try:
+            conta_rec.total_parcelas = int(request.form.get('total_parcelas') or 1)
+        except ValueError:
+            conta_rec.total_parcelas = 1
+
         conta_rec.categoria = request.form.get('categoria', 'Contas Fixas')
 
         conta_id_raw = request.form.get('conta_id')
         if conta_id_raw:
-            conta_valida = Conta.query.filter_by(id=int(conta_id_raw), usuario_id=current_user.id).first()
-            conta_rec.conta_id = conta_valida.id if conta_valida else None
+            try:
+                conta_valida = Conta.query.filter_by(id=int(conta_id_raw), usuario_id=current_user.id).first()
+                conta_rec.conta_id = conta_valida.id if conta_valida else None
+            except ValueError:
+                conta_rec.conta_id = None
         else:
             conta_rec.conta_id = None
 
