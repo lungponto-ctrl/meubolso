@@ -285,7 +285,7 @@ def create_app():
                 db.session.add(user_daniely)
             db.session.commit()
 
-        # Migração segura: adiciona usuario_id nas tabelas antigas e vincula à Daniely
+        # 1. Migração segura: adiciona usuario_id nas tabelas antigas
         tabelas_para_migrar = ['conta', 'cartao', 'transacao', 'configuracao', 'conta_recorrente']
         for tabela in tabelas_para_migrar:
             try:
@@ -294,7 +294,7 @@ def create_app():
                 db.session.execute(db.text(f"ALTER TABLE {tabela} ADD COLUMN usuario_id INTEGER DEFAULT {user_daniely.id}"))
                 db.session.commit()
 
-        # Migração segura: garante que a coluna salario_base existe na tabela configuracao
+        # 2. Migração segura: garante colunas de salário na tabela configuracao
         try:
             db.session.execute(db.text("SELECT salario_base FROM configuracao LIMIT 1"))
         except Exception:
@@ -305,5 +305,23 @@ def create_app():
             except Exception as e:
                 db.session.rollback()
                 print(f"[ERRO AO ADICIONAR COLUNAS DE SALARIO]: {e}")
+
+        # 3. Migração segura: garante colunas essenciais na tabela transacao (como categoria)
+        colunas_transacao = [
+            ('categoria', 'TEXT DEFAULT "Geral"'),
+            ('cartao_id', 'INTEGER'),
+            ('parcela_atual', 'INTEGER DEFAULT 1'),
+            ('total_parcelas', 'INTEGER DEFAULT 1')
+        ]
+        for col_nome, col_tipo in colunas_transacao:
+            try:
+                db.session.execute(db.text(f"SELECT {col_nome} FROM transacao LIMIT 1"))
+            except Exception:
+                try:
+                    db.session.execute(db.text(f"ALTER TABLE transacao ADD COLUMN {col_nome} {col_tipo}"))
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERRO AO ADICIONAR COLUNA {col_nome}]: {e}")
 
     return app
