@@ -109,7 +109,8 @@
                     <label for="username" class="form-label small fw-bold">USUÁRIO</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary text-light"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" class="form-control" id="username" name="username" required placeholder="Ex: meu_usuario">
+                        <!-- Adicionado autocomplete="off" -->
+                        <input type="text" class="form-control" id="username" name="username" autocomplete="off" required placeholder="Ex: meu_usuario">
                     </div>
                 </div>
 
@@ -117,7 +118,8 @@
                     <label for="password" class="form-label small fw-bold">SENHA</label>
                     <div class="input-group">
                         <span class="input-group-text bg-dark border-secondary text-light"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" class="form-control" id="password" name="password" required placeholder="••••••••">
+                        <!-- Adicionado autocomplete="new-password" -->
+                        <input type="password" class="form-control" id="password" name="password" autocomplete="new-password" required placeholder="••••••••">
                     </div>
                 </div>
 
