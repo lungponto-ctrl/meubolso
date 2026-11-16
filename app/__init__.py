@@ -30,15 +30,67 @@ def create_app():
         from app.models import Usuario
         return db.session.get(Usuario, int(user_id))
 
-    # Rota pública para serviços de ping / cron job manterem o Render acordado
+    # Rota pública para serviços de ping / cron job manterem o servidor acordado
     @app.route('/ping')
     def ping():
         return "OK - Servidor Ativo", 200
+
+    # Rota de Cadastro de Novos Usuários
+    @app.route('/cadastro', methods=['GET', 'POST'])
+    def cadastro():
+        from app.models import Usuario, Configuracao
+
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
+
+        if request.method == 'POST':
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
+            confirma_senha = request.form.get('confirma_senha', '')
+
+            if not username or not password:
+                flash('Preencha todos os campos.', 'danger')
+            elif password != confirma_senha:
+                flash('As senhas não coincidem.', 'danger')
+            elif Usuario.query.filter_by(username=username).first():
+                flash('Este nome de usuário já está em uso. Escolha outro.', 'danger')
+            else:
+                try:
+                    novo_usuario = Usuario(username=username)
+                    novo_usuario.set_password(password)
+                    db.session.add(novo_usuario)
+                    db.session.flush()  # Gera o ID do usuário antes do commit
+
+                    # Cria a configuração inicial padrão para o novo usuário
+                    nova_config = Configuracao(
+                        meta_gastos=3000.00,
+                        salario_base=0.00,
+                        dia_salario=5,
+                        usuario_id=novo_usuario.id
+                    )
+                    db.session.add(nova_config)
+                    db.session.commit()
+
+                    login_user(novo_usuario)
+                    flash('Conta criada com sucesso! Bem-vindo ao AppMeuBolso.', 'success')
+                    return redirect(url_for('index'))
+                except ValueError as e:
+                    db.session.rollback()
+                    flash(str(e), 'danger')
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERRO AO CADASTRAR USUÁRIO]: {e}")
+                    flash('Erro ao criar conta. Tente novamente.', 'danger')
+
+        return render_template('cadastro.html')
 
     # Rota de Login
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         from app.models import Usuario
+
+        if current_user.is_authenticated:
+            return redirect(url_for('index'))
 
         if request.method == 'POST':
             username = request.form.get('username')
@@ -84,16 +136,21 @@ def create_app():
 
         return render_template('alterar_senha.html')
 
-    # Rota Principal (Dashboard com Filtro de Mês) - Protegida
+    # Rota Principal (Dashboard com Filtro de Mês) - Protegida e Isolada por Usuário
     @app.route('/', methods=['GET', 'POST'])
     @login_required
     def index():
         from app.models import Conta, Transacao, Configuracao, ContaRecorrente
 
-        # Busca ou cria a configuração padrão no banco
-        config = Configuracao.query.first()
+        # Busca ou cria a configuração exclusiva do usuário logado
+        config = Configuracao.query.filter_by(usuario_id=current_user.id).first()
         if not config:
-            config = Configuracao(meta_gastos=3000.00, salario_base=0.00, dia_salario=5)
+            config = Configuracao(
+                meta_gastos=3000.00,
+                salario_base=0.00,
+                dia_salario=5,
+                usuario_id=current_user.id
+            )
             db.session.add(config)
             db.session.commit()
 
@@ -112,13 +169,15 @@ def create_app():
                 print(f"[ERRO AO ATUALIZAR CONFIGURAÇÃO]: {e}")
                 db.session.rollback()
 
-        contas = Conta.query.all()
+        # Filtra apenas as contas do usuário logado
+        contas = Conta.query.filter_by(usuario_id=current_user.id).all()
 
         # Define o mês atual (formato YYYY-MM) como padrão ou pega o filtro da URL
         mes_atual = datetime.utcnow().strftime('%Y-%m')
         mes_filtro = request.args.get('mes', mes_atual)
 
-        query_transacoes = Transacao.query
+        # Base da query filtrada pelo usuário logado
+        query_transacoes = Transacao.query.filter_by(usuario_id=current_user.id)
 
         # Filtra as transações estritamente pelo mês selecionado
         if mes_filtro:
@@ -162,8 +221,8 @@ def create_app():
         # O saldo total soma receitas e dinheiro guardado, subtraindo despesas
         saldo_total = saldo_inicial_total + total_receitas + total_guardado - total_despesas
 
-        # Buscar Contas Recorrentes para verificar vencimentos e alertas do mês
-        recorrentes_todas = ContaRecorrente.query.all()
+        # Buscar Contas Recorrentes apenas do usuário logado
+        recorrentes_todas = ContaRecorrente.query.filter_by(usuario_id=current_user.id).all()
         contas_para_vencer = []
         for r in recorrentes_todas:
             if not r.esta_pago_no_mes(mes_filtro):
@@ -211,27 +270,6 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-        # Garante de forma segura que a coluna categoria existe na tabela transacao
-        try:
-            db.session.execute(db.text("SELECT categoria FROM transacao LIMIT 1"))
-        except Exception:
-            db.session.execute(db.text("ALTER TABLE transacao ADD COLUMN categoria VARCHAR(100) DEFAULT 'Diversos'"))
-            db.session.commit()
-
-        # Garante de forma segura que a coluna salario_base existe na tabela configuracao
-        try:
-            db.session.execute(db.text("SELECT salario_base FROM configuracao LIMIT 1"))
-        except Exception:
-            db.session.execute(db.text("ALTER TABLE configuracao ADD COLUMN salario_base FLOAT DEFAULT 0.00"))
-            db.session.commit()
-
-        # Garante de forma segura que a coluna dia_salario existe na tabela configuracao
-        try:
-            db.session.execute(db.text("SELECT dia_salario FROM configuracao LIMIT 1"))
-        except Exception:
-            db.session.execute(db.text("ALTER TABLE configuracao ADD COLUMN dia_salario INTEGER DEFAULT 5"))
-            db.session.commit()
-
         # Garante que a usuária Daniely está configurada no sistema com a senha correta
         from app.models import Usuario
         user_daniely = Usuario.query.filter_by(username='Daniely').first()
@@ -240,10 +278,20 @@ def create_app():
             if user_antigo:
                 user_antigo.username = 'Daniely'
                 user_antigo.set_password('Dany97883437')
+                user_daniely = user_antigo
             else:
-                novo_usuario = Usuario(username='Daniely')
-                novo_usuario.set_password('Dany97883437')
-                db.session.add(novo_usuario)
+                user_daniely = Usuario(username='Daniely')
+                user_daniely.set_password('Dany97883437')
+                db.session.add(user_daniely)
             db.session.commit()
+
+        # Migração segura: adiciona usuario_id nas tabelas antigas e vincula à Daniely
+        tabelas_para_migrar = ['conta', 'cartao', 'transacao', 'configuracao', 'conta_recorrente']
+        for tabela in tabelas_para_migrar:
+            try:
+                db.session.execute(db.text(f"SELECT usuario_id FROM {tabela} LIMIT 1"))
+            except Exception:
+                db.session.execute(db.text(f"ALTER TABLE {tabela} ADD COLUMN usuario_id INTEGER DEFAULT {user_daniely.id}"))
+                db.session.commit()
 
     return app

@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for
+from flask_login import login_required, current_user
 from app import db
 from app.models import Cartao, Transacao
 
@@ -6,12 +7,14 @@ cartoes_bp = Blueprint('cartoes', __name__, url_prefix='/cartoes')
 
 
 @cartoes_bp.route('/')
+@login_required
 def index():
-    cartoes = Cartao.query.all()
+    cartoes = Cartao.query.filter_by(usuario_id=current_user.id).all()
     return render_template('cartoes/index.html', cartoes=cartoes)
 
 
 @cartoes_bp.route('/novo', methods=['GET', 'POST'])
+@login_required
 def novo():
     if request.method == 'POST':
         try:
@@ -24,7 +27,8 @@ def novo():
                 nome=nome,
                 limite=limite,
                 dia_fechamento=dia_fechamento,
-                dia_vencimento=dia_vencimento
+                dia_vencimento=dia_vencimento,
+                usuario_id=current_user.id
             )
             db.session.add(novo_cartao)
             db.session.commit()
@@ -38,8 +42,9 @@ def novo():
 
 
 @cartoes_bp.route('/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
 def editar(id):
-    cartao = Cartao.query.get_or_404(id)
+    cartao = Cartao.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
 
     if request.method == 'POST':
         try:
@@ -58,8 +63,9 @@ def editar(id):
 
 
 @cartoes_bp.route('/deletar/<int:id>')
+@login_required
 def deletar(id):
-    cartao = Cartao.query.get_or_404(id)
+    cartao = Cartao.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
     try:
         db.session.delete(cartao)
         db.session.commit()
@@ -71,7 +77,11 @@ def deletar(id):
 
 
 @cartoes_bp.route('/<int:id>/fatura')
+@login_required
 def fatura(id):
-    cartao = Cartao.query.get_or_404(id)
-    transacoes = Transacao.query.filter_by(cartao_id=cartao.id).order_by(Transacao.data.desc()).all()
+    cartao = Cartao.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
+    transacoes = Transacao.query.filter_by(
+        cartao_id=cartao.id,
+        usuario_id=current_user.id
+    ).order_by(Transacao.data.desc()).all()
     return render_template('cartoes/fatura.html', cartao=cartao, transacoes=transacoes)

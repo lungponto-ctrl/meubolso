@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for
+from flask_login import login_required, current_user
 from app import db
 from app.models import Transacao, Conta, Cartao
 
@@ -7,6 +8,7 @@ transacoes_bp = Blueprint('transacoes', __name__, url_prefix='/transacoes')
 
 
 @transacoes_bp.route('/')
+@login_required
 def index():
     tipo_filtro = request.args.get('tipo')
     conta_filtro = request.args.get('conta_id', type=int)
@@ -15,7 +17,8 @@ def index():
     mes_atual = datetime.utcnow().strftime('%Y-%m')
     mes_filtro = request.args.get('mes', mes_atual)
 
-    query = Transacao.query
+    # Base da query restrita ao usuário logado
+    query = Transacao.query.filter_by(usuario_id=current_user.id)
 
     if tipo_filtro:
         query = query.filter_by(tipo=tipo_filtro)
@@ -34,7 +37,7 @@ def index():
             pass
 
     transacoes = query.order_by(Transacao.data.desc()).all()
-    contas = Conta.query.all()
+    contas = Conta.query.filter_by(usuario_id=current_user.id).all()
 
     return render_template('transacoes/index.html',
                            items=transacoes,
@@ -45,35 +48,44 @@ def index():
 
 
 @transacoes_bp.route('/novo', methods=['GET', 'POST'])
+@login_required
 def novo():
-    contas = Conta.query.all()
-    cartoes = Cartao.query.all()
+    contas = Conta.query.filter_by(usuario_id=current_user.id).all()
+    cartoes = Cartao.query.filter_by(usuario_id=current_user.id).all()
 
     if request.method == 'POST':
         try:
             descricao = request.form.get('descricao')
             valor = float(request.form.get('valor', 0.0))
             tipo = request.form.get('tipo')
-            categoria = request.form.get('categoria')  # Captura a categoria escolhida no formulário
-            forma_pagamento = request.form.get('forma_pagamento')  # 'conta' ou 'cartao'
+            categoria = request.form.get('categoria')
+            forma_pagamento = request.form.get('forma_pagamento')
 
             # Captura a data informada ou usa a data atual caso venha vazia
             data_str = request.form.get('data')
             data_base = datetime.strptime(data_str, '%Y-%m-%d') if data_str else datetime.utcnow()
 
-            conta_id = request.form.get('conta_id', type=int) if forma_pagamento == 'conta' else None
-            cartao_id = request.form.get('cartao_id', type=int) if forma_pagamento == 'cartao' else None
+            conta_id = None
+            cartao_id = None
+
+            # Garante que a conta ou cartão selecionado pertence ao usuário logado
+            if forma_pagamento == 'conta':
+                cid = request.form.get('conta_id', type=int)
+                conta_valida = Conta.query.filter_by(id=cid, usuario_id=current_user.id).first()
+                conta_id = conta_valida.id if conta_valida else None
+            elif forma_pagamento == 'cartao':
+                crid = request.form.get('cartao_id', type=int)
+                cartao_valido = Cartao.query.filter_by(id=crid, usuario_id=current_user.id).first()
+                cartao_id = cartao_valido.id if cartao_valido else None
+
             total_parcelas = int(request.form.get('total_parcelas', 1)) if forma_pagamento == 'cartao' else 1
 
-            if forma_pagamento == 'cartao' and total_parcelas > 1:
-                # Divide o valor total entre as parcelas
+            if forma_pagamento == 'cartao' and total_parcelas > 1 and cartao_id:
                 valor_parcela = valor / total_parcelas
                 for i in range(1, total_parcelas + 1):
-                    # Avança 30 dias para cada parcela subsequente
                     dias_a_somar = (i - 1) * 30
                     data_parcela = data_base + timedelta(days=dias_a_somar)
 
-                    # Mantém o nome limpo na descrição e controla as colunas de parcelas e categoria
                     nova_transacao = Transacao(
                         descricao=descricao,
                         valor=valor_parcela,
@@ -82,7 +94,8 @@ def novo():
                         cartao_id=cartao_id,
                         data=data_parcela,
                         parcela_atual=i,
-                        total_parcelas=total_parcelas
+                        total_parcelas=total_parcelas,
+                        usuario_id=current_user.id
                     )
                     db.session.add(nova_transacao)
             else:
@@ -94,7 +107,8 @@ def novo():
                     conta_id=conta_id,
                     cartao_id=cartao_id,
                     data=data_base,
-                    total_parcelas=total_parcelas
+                    total_parcelas=total_parcelas,
+                    usuario_id=current_user.id
                 )
                 db.session.add(nova_transacao)
 
@@ -108,25 +122,35 @@ def novo():
 
 
 @transacoes_bp.route('/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
 def editar(id):
-    transacao = Transacao.query.get_or_404(id)
-    contas = Conta.query.all()
-    cartoes = Cartao.query.all()
+    transacao = Transacao.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
+    contas = Conta.query.filter_by(usuario_id=current_user.id).all()
+    cartoes = Cartao.query.filter_by(usuario_id=current_user.id).all()
 
     if request.method == 'POST':
         try:
             transacao.descricao = request.form.get('descricao')
             transacao.valor = float(request.form.get('valor', 0.0))
             transacao.tipo = request.form.get('tipo')
-            transacao.categoria = request.form.get('categoria')  # Atualiza a categoria ao editar
+            transacao.categoria = request.form.get('categoria')
 
             data_str = request.form.get('data')
             if data_str:
                 transacao.data = datetime.strptime(data_str, '%Y-%m-%d')
 
             forma_pagamento = request.form.get('forma_pagamento')
-            transacao.conta_id = request.form.get('conta_id', type=int) if forma_pagamento == 'conta' else None
-            transacao.cartao_id = request.form.get('cartao_id', type=int) if forma_pagamento == 'cartao' else None
+            transacao.conta_id = None
+            transacao.cartao_id = None
+
+            if forma_pagamento == 'conta':
+                cid = request.form.get('conta_id', type=int)
+                conta_valida = Conta.query.filter_by(id=cid, usuario_id=current_user.id).first()
+                transacao.conta_id = conta_valida.id if conta_valida else None
+            elif forma_pagamento == 'cartao':
+                crid = request.form.get('cartao_id', type=int)
+                cartao_valido = Cartao.query.filter_by(id=crid, usuario_id=current_user.id).first()
+                transacao.cartao_id = cartao_valido.id if cartao_valido else None
 
             db.session.commit()
             return redirect(url_for('transacoes.index'))
@@ -138,8 +162,9 @@ def editar(id):
 
 
 @transacoes_bp.route('/deletar/<int:id>')
+@login_required
 def deletar(id):
-    transacao = Transacao.query.get_or_404(id)
+    transacao = Transacao.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
     try:
         db.session.delete(transacao)
         db.session.commit()
@@ -151,8 +176,9 @@ def deletar(id):
 
 
 @transacoes_bp.route('/transferir', methods=['GET', 'POST'])
+@login_required
 def transferir():
-    contas = Conta.query.all()
+    contas = Conta.query.filter_by(usuario_id=current_user.id).all()
 
     if request.method == 'POST':
         try:
@@ -161,7 +187,15 @@ def transferir():
             conta_origem_id = int(request.form.get('conta_origem_id'))
             conta_destino_id = int(request.form.get('conta_destino_id'))
 
-            if conta_origem_id == conta_destino_id:
+            # Verifica se ambas as contas pertencem ao usuário logado
+            origem = Conta.query.filter_by(id=conta_origem_id, usuario_id=current_user.id).first()
+            destino = Conta.query.filter_by(id=conta_destino_id, usuario_id=current_user.id).first()
+
+            if not origem or not destino:
+                return render_template('transacoes/transferir.html', contas=contas,
+                                       erro="Conta de origem ou destino inválida.")
+
+            if origem.id == destino.id:
                 return render_template('transacoes/transferir.html', contas=contas,
                                        erro="A conta de origem e destino devem ser diferentes.")
 
@@ -170,7 +204,8 @@ def transferir():
                 valor=valor,
                 tipo='despesa',
                 categoria='Diversos',
-                conta_id=conta_origem_id
+                conta_id=origem.id,
+                usuario_id=current_user.id
             )
 
             entrada = Transacao(
@@ -178,7 +213,8 @@ def transferir():
                 valor=valor,
                 tipo='receita',
                 categoria='Receitas / Entradas',
-                conta_id=conta_destino_id
+                conta_id=destino.id,
+                usuario_id=current_user.id
             )
 
             db.session.add(saida)

@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_required
+from flask_login import login_required, current_user
 from app import db
 from app.models import ContaRecorrente, Conta, Transacao
 
@@ -20,8 +20,12 @@ def index():
         categoria = request.form.get('categoria', 'Contas Fixas')
         tipo_despesa = request.form.get('tipo_despesa', 'Fixa')
         total_parcelas = int(request.form.get('total_parcelas', 1))
-        conta_id = request.form.get('conta_id')
-        conta_id = int(conta_id) if conta_id else None
+
+        conta_id_raw = request.form.get('conta_id')
+        conta_id = None
+        if conta_id_raw:
+            conta_valida = Conta.query.filter_by(id=int(conta_id_raw), usuario_id=current_user.id).first()
+            conta_id = conta_valida.id if conta_valida else None
 
         if descricao and valor > 0:
             nova_conta = ContaRecorrente(
@@ -33,7 +37,8 @@ def index():
                 total_parcelas=total_parcelas,
                 parcela_atual=1,
                 mes_inicio=mes_filtro,
-                conta_id=conta_id
+                conta_id=conta_id,
+                usuario_id=current_user.id
             )
             db.session.add(nova_conta)
             db.session.commit()
@@ -43,8 +48,8 @@ def index():
 
         return redirect(url_for('recorrentes.index', mes=mes_filtro))
 
-    contas_recorrentes = ContaRecorrente.query.all()
-    contas_bancarias = Conta.query.all()
+    contas_recorrentes = ContaRecorrente.query.filter_by(usuario_id=current_user.id).all()
+    contas_bancarias = Conta.query.filter_by(usuario_id=current_user.id).all()
 
     return render_template('recorrentes.html',
                            contas_recorrentes=contas_recorrentes,
@@ -55,7 +60,7 @@ def index():
 @recorrentes_bp.route('/pagar/<int:id>', methods=['POST'])
 @login_required
 def pagar(id):
-    conta_rec = ContaRecorrente.query.get_or_404(id)
+    conta_rec = ContaRecorrente.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
     mes_filtro = request.form.get('mes_referencia', datetime.utcnow().strftime('%Y-%m'))
 
     conta_rec.ultimo_mes_pago = mes_filtro
@@ -70,7 +75,8 @@ def pagar(id):
         tipo='despesa',
         categoria=conta_rec.categoria,
         conta_id=conta_rec.conta_id,
-        data=datetime.utcnow()
+        data=datetime.utcnow(),
+        usuario_id=current_user.id
     )
 
     # Avança a parcela atual ao pagar
@@ -87,7 +93,7 @@ def pagar(id):
 @recorrentes_bp.route('/editar/<int:id>', methods=['POST'])
 @login_required
 def editar(id):
-    conta_rec = ContaRecorrente.query.get_or_404(id)
+    conta_rec = ContaRecorrente.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
     try:
         conta_rec.descricao = request.form.get('descricao')
         conta_rec.valor = float(request.form.get('valor', 0.0))
@@ -96,8 +102,12 @@ def editar(id):
         conta_rec.total_parcelas = int(request.form.get('total_parcelas', 1))
         conta_rec.categoria = request.form.get('categoria', 'Contas Fixas')
 
-        conta_id = request.form.get('conta_id')
-        conta_rec.conta_id = int(conta_id) if conta_id else None
+        conta_id_raw = request.form.get('conta_id')
+        if conta_id_raw:
+            conta_valida = Conta.query.filter_by(id=int(conta_id_raw), usuario_id=current_user.id).first()
+            conta_rec.conta_id = conta_valida.id if conta_valida else None
+        else:
+            conta_rec.conta_id = None
 
         db.session.commit()
         flash('Compromisso atualizado com sucesso!', 'success')
@@ -111,7 +121,7 @@ def editar(id):
 @recorrentes_bp.route('/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir(id):
-    conta_rec = ContaRecorrente.query.get_or_404(id)
+    conta_rec = ContaRecorrente.query.filter_by(id=id, usuario_id=current_user.id).first_or_404()
     db.session.delete(conta_rec)
     db.session.commit()
     flash('Item removido com sucesso.', 'info')

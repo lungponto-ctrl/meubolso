@@ -9,6 +9,13 @@ class Usuario(UserMixin, db.Model):
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
 
+    # Relacionamentos para isolar os dados de cada usuário
+    contas = db.relationship('Conta', backref='usuario', lazy=True, cascade='all, delete-orphan')
+    cartoes = db.relationship('Cartao', backref='usuario', lazy=True, cascade='all, delete-orphan')
+    transacoes = db.relationship('Transacao', backref='usuario', lazy=True, cascade='all, delete-orphan')
+    configuracao = db.relationship('Configuracao', backref='usuario', uselist=False, cascade='all, delete-orphan')
+    recorrentes = db.relationship('ContaRecorrente', backref='usuario', lazy=True, cascade='all, delete-orphan')
+
     def set_password(self, password):
         # Validação rigorosa de senha forte
         if len(password) < 6:
@@ -27,6 +34,7 @@ class Conta(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     tipo = db.Column(db.String(50), nullable=False)
     saldo_inicial = db.Column(db.Float, default=0.0)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
 
     @property
     def saldo_atual(self):
@@ -44,6 +52,7 @@ class Cartao(db.Model):
     limite = db.Column(db.Float, nullable=False, default=0.0)
     dia_fechamento = db.Column(db.Integer, nullable=False, default=1)
     dia_vencimento = db.Column(db.Integer, nullable=False, default=10)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
 
     @property
     def fatura_atual(self):
@@ -61,11 +70,10 @@ class Transacao(db.Model):
     descricao = db.Column(db.String(150), nullable=False)
     valor = db.Column(db.Float, nullable=False)
     tipo = db.Column(db.String(20), nullable=False)  # 'receita' ou 'despesa'
-
-    # Campo de Categoria adicionado para suportar a seleção estruturada do cliente
     categoria = db.Column(db.String(100), nullable=False, default='Diversos')
-
     data = db.Column(db.DateTime, default=datetime.utcnow)
+
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
 
     # Vínculo com Conta (opcional caso o lançamento seja feito no cartão)
     conta_id = db.Column(db.Integer, db.ForeignKey('conta.id'), nullable=True)
@@ -83,27 +91,26 @@ class Transacao(db.Model):
 class Configuracao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     meta_gastos = db.Column(db.Float, default=3000.00, nullable=False)
-    salario_base = db.Column(db.Float, default=0.00, nullable=False)  # Salário fixo mensal configurável
-    dia_salario = db.Column(db.Integer, default=5, nullable=False)  # Dia do mês em que o salário cai
+    salario_base = db.Column(db.Float, default=0.00, nullable=False)
+    dia_salario = db.Column(db.Integer, default=5, nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), unique=True, nullable=False)
 
 
 class ContaRecorrente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    descricao = db.Column(db.String(150), nullable=False)  # Ex: Aluguel, Internet, Financiamento
+    descricao = db.Column(db.String(150), nullable=False)
     valor = db.Column(db.Float, nullable=False)
-    dia_vencimento = db.Column(db.Integer, nullable=False)  # Dia do mês (ex: 5, 10, 20)
+    dia_vencimento = db.Column(db.Integer, nullable=False)
     categoria = db.Column(db.String(100), nullable=False, default='Contas Fixas')
-
-    # Classificação de Despesa (Fixa, Variável, Parcelamento/Dívida)
     tipo_despesa = db.Column(db.String(50), nullable=False, default='Fixa')
 
     # Controle de Parcelamentos
     parcela_atual = db.Column(db.Integer, default=1)
     total_parcelas = db.Column(db.Integer, default=1)
-    mes_inicio = db.Column(db.String(7), nullable=True)  # Formato 'YYYY-MM'
-
-    # Guarda o mês (formato 'YYYY-MM') em que foi pago pela última vez
+    mes_inicio = db.Column(db.String(7), nullable=True)
     ultimo_mes_pago = db.Column(db.String(7), nullable=True)
+
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
 
     # Conta padrão de onde o dinheiro sai quando você clica em "Pagar"
     conta_id = db.Column(db.Integer, db.ForeignKey('conta.id'), nullable=True)
@@ -114,7 +121,6 @@ class ContaRecorrente(db.Model):
 
     @property
     def parcelas_restantes(self):
-        """Calcula quantas parcelas ainda faltam pagar"""
         if self.total_parcelas <= 1:
             return 0
         restam = self.total_parcelas - self.parcela_atual
@@ -122,7 +128,6 @@ class ContaRecorrente(db.Model):
 
     @property
     def mes_termino(self):
-        """Calcula o mês em que o parcelamento vai acabar"""
         if self.total_parcelas <= 1 or not self.mes_inicio:
             return None
         try:
