@@ -10,11 +10,20 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__)
 
-    # Configurações do Banco de Dados SQLite
+    # Configurações do Banco de Dados (PostgreSQL no Railway ou SQLite local)
     basedir = os.path.abspath(os.path.dirname(__file__))
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, '../database.db')
+    database_url = os.environ.get('DATABASE_URL')
+
+    if database_url:
+        # Ajuste de compatibilidade exigido pelo SQLAlchemy 2.0+
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    else:
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, '../database.db')
+
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'appmeubolso-secret-key'
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'appmeubolso-secret-key')
 
     db.init_app(app)
 
@@ -291,13 +300,19 @@ def create_app():
             try:
                 db.session.execute(db.text(f"SELECT usuario_id FROM {tabela} LIMIT 1"))
             except Exception:
-                db.session.execute(db.text(f"ALTER TABLE {tabela} ADD COLUMN usuario_id INTEGER DEFAULT {user_daniely.id}"))
-                db.session.commit()
+                db.session.rollback()
+                try:
+                    db.session.execute(db.text(f"ALTER TABLE {tabela} ADD COLUMN usuario_id INTEGER DEFAULT {user_daniely.id}"))
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[ERRO MIGRACAO {tabela}]: {e}")
 
         # 2. Migração segura: garante colunas de salário na tabela configuracao
         try:
             db.session.execute(db.text("SELECT salario_base FROM configuracao LIMIT 1"))
         except Exception:
+            db.session.rollback()
             try:
                 db.session.execute(db.text("ALTER TABLE configuracao ADD COLUMN salario_base FLOAT DEFAULT 0.0"))
                 db.session.execute(db.text("ALTER TABLE configuracao ADD COLUMN dia_salario INTEGER DEFAULT 5"))
@@ -308,7 +323,7 @@ def create_app():
 
         # 3. Migração segura: garante colunas essenciais na tabela transacao (como categoria)
         colunas_transacao = [
-            ('categoria', 'TEXT DEFAULT "Geral"'),
+            ('categoria', "TEXT DEFAULT 'Geral'"),
             ('cartao_id', 'INTEGER'),
             ('parcela_atual', 'INTEGER DEFAULT 1'),
             ('total_parcelas', 'INTEGER DEFAULT 1')
@@ -317,6 +332,7 @@ def create_app():
             try:
                 db.session.execute(db.text(f"SELECT {col_nome} FROM transacao LIMIT 1"))
             except Exception:
+                db.session.rollback()
                 try:
                     db.session.execute(db.text(f"ALTER TABLE transacao ADD COLUMN {col_nome} {col_tipo}"))
                     db.session.commit()

@@ -16,7 +16,7 @@ def index():
     if request.method == 'POST':
         descricao = request.form.get('descricao', '').strip()
 
-        # Tratamento seguro para valores numéricos (evita crash se vier vazio ou inválido)
+        # Tratamento seguro para valores numéricos
         try:
             valor = float(request.form.get('valor') or 0.0)
         except ValueError:
@@ -34,6 +34,10 @@ def index():
 
         categoria = request.form.get('categoria', 'Contas Fixas')
         tipo_despesa = request.form.get('tipo_despesa', 'Fixa')
+
+        # Captura o mês de início selecionado no modal (se vazio, usa o mês do filtro atual)
+        mes_inicio_form = request.form.get('mes_inicio', '').strip()
+        mes_inicio = mes_inicio_form if mes_inicio_form else mes_filtro
 
         conta_id_raw = request.form.get('conta_id')
         conta_id = None
@@ -53,7 +57,7 @@ def index():
                 tipo_despesa=tipo_despesa,
                 total_parcelas=total_parcelas,
                 parcela_atual=1,
-                mes_inicio=mes_filtro,
+                mes_inicio=mes_inicio,  # Salva o mês de início correto escolhido
                 conta_id=conta_id,
                 usuario_id=current_user.id
             )
@@ -65,6 +69,7 @@ def index():
 
         return redirect(url_for('recorrentes.index', mes=mes_filtro))
 
+    # Filtra contas recorrentes para exibir apenas as que já começaram ou são do mês selecionado
     contas_recorrentes = ContaRecorrente.query.filter_by(usuario_id=current_user.id).all()
     contas_bancarias = Conta.query.filter_by(usuario_id=current_user.id).all()
 

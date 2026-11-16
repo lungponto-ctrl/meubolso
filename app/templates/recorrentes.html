@@ -223,6 +223,13 @@
                         </div>
                     </div>
 
+                    <!-- NOVO CAMPO: Mês de Início / Primeira Fatura -->
+                    <div class="mb-3">
+                        <label class="form-label text-light opacity-75">Mês de Início (Primeira Fatura)</label>
+                        <input type="month" name="mes_inicio" class="form-control bg-dark text-light border-secondary" value="{{ mes_atual }}">
+                        <small class="text-muted" style="font-size: 0.75rem;">Mês em que esta conta/parcela começa a ser cobrada.</small>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label text-light opacity-75">Categoria</label>
                         <select name="categoria" class="form-select bg-dark text-light border-secondary">
